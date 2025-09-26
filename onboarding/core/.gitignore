@@ -2,3 +2,6 @@
 *
 # Except this file
 !.gitignore
+#Do not ignore the tester directory and the stuff inside
+!tester/
+!tester/**
