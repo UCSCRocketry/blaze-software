@@ -15,8 +15,17 @@
 
 class spiFlash {
     public:
+        //Constructor:
+        spiFlash();
+
+        //Get Methods:
+        uint8_t getCS_PIN(uint8_t pin);
+
+        //Set Methods:
+        bool setCS_PIN(uint8_t pin);
 
     private:
+        CS_PIN;
 
 }
 
