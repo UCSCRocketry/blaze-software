@@ -5,13 +5,15 @@ RFD900x::RFD900x(HardwareSerial& hwSerial) : serial(hwSerial) {}
 
 
 void RFD900x::init(uint32_t baud) {
-    serial.begin(baud);
-    delay(100);
-  }
+  serial.begin(baud);
+  delay(100);
+}
 
-
-
-
+bool RFD900x::send(const uint8_t* buf, size_t len) {
+    size_t wrote = serial.write(buf, len);
+    serial.flush();
+    return wrote == len;
+}
 
 size_t RFD900x::recv(uint8_t* buf, size_t len, uint32_t timeoutMs) {
     uint32_t t0 = millis();
