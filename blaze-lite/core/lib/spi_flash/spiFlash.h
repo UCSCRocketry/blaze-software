@@ -1,9 +1,3 @@
-/*
-    spiFlash.h - a library that handles the Adafruit SPI flash breakout board for Blackpill Arduino
-    To use:
-        include this header file in your main program, DO NOT directly call the cpp file
-*/
-
 #ifndef SPI_FLASH_H
 #define SPI_FLASH_H
 
@@ -22,13 +16,24 @@ class spiFlash {
         uint8_t getCS_PIN(uint8_t pin);
 
         //Set Methods:
-        bool setCS_PIN(uint8_t pin);
+        void setCS_PIN(uint8_t pin);
+
+        //functionality methods:
+        ssize_t read(size_t offset, size_t bytes, uint8_t* buffer);
+
+        uint8_t queue(size_t bytes, uint8_t* data, int priority = P_UNIMPORTANT);
+
+        uint8_t buffer (size_t bytes, uint8_t* data);
+
+        ssize_t write (size_t bytes, uint8_t* data);
+
+        void flush (void);
+
+        ssize_t kLog (size_t bytes, uint8_t* data);
 
     private:
-        CS_PIN;
+        uint8_t CS_PIN; 
 
 }
-
-
 
 #endif
