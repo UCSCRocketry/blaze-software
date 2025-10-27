@@ -14,7 +14,7 @@ struct DataPacket {
 // return a created packet
 DataPacket createPacket();
 
-// validate the packet's integrity
+// validate the packet's integrity with checksum
 bool validatePacket(const DataPacket& packet);
 
 // check if the packet ID matches
