@@ -1,39 +1,90 @@
 #ifndef SPI_FLASH_H
 #define SPI_FLASH_H
 
-#include <Arduino.h>
-#include <SPI.h>
-#include <SdFat.h>
+// #include <Arduino.h>
+// #include <SPI.h>
+// #include <SdFat.h>
 
-#include <Adafruit_SPIFlash.h>
+// #include <Adafruit_SPIFlash.h>
 
+#include <queue> 
+#include <tuple>
+#include <stdint.h>
+#include <unistd.h>
+#include <string.h>
+#include <cmath>
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+//TODO: Documentation, Order methods in aphabetical
 class spiFlash {
-    public:
-        //Constructor:
-        spiFlash();
+ public:
+    //Constructor:
+    spiFlash (const char cs_pin, const size_t buffer_size, const size_t k_buffer_size) ;
 
-        //Get Methods:
-        uint8_t getCS_PIN(uint8_t pin);
+    //destructor:
+    ~spiFlash() ;
 
-        //Set Methods:
-        void setCS_PIN(uint8_t pin);
+    //Get Methods:
+    char getCS_PIN();
 
-        //functionality methods:
-        ssize_t read(size_t offset, size_t bytes, uint8_t* buffer);
+    //Set Methods:
+    void setCS_PIN(char pin);
 
-        uint8_t queue(size_t bytes, uint8_t* data, int priority = P_UNIMPORTANT);
+    //functionality methods:
+    ssize_t read(const size_t offset, const size_t bytes, const char* buffer);
 
-        uint8_t buffer (size_t bytes, uint8_t* data);
+    char queue(size_t bytes, char* data, char priority = P_UNIMPORTANT);
 
-        ssize_t write (size_t bytes, uint8_t* data);
+    char buffer (const size_t bytes, const char* data);
 
-        void flush (void);
+    ssize_t write (const size_t bytes, const char* data);
 
-        ssize_t kLog (size_t bytes, uint8_t* data);
+    ssize_t kwrite (const size_t bytes, const char* data);
 
-    private:
-        uint8_t CS_PIN; 
+    char flush (void);
 
-}
+    ssize_t kLog (const size_t bytes, const char* data);
+
+    char kflush (void);
+
+    ssize_t tick(void) ;
+
+    //types
+    struct cmp_io_priority {
+        bool operator()(const std::tuple<char, size_t, char*>& l, const std::tuple<char, size_t, char*>& r) const ;
+    };
+
+    static constexpr const char
+        P_MANDATORY   = 0, //just force writes this at next tick
+        P_URGENT      = 1,
+        P_IMPORTANT   = 2,
+        P_STD         = 3,
+        P_UNIMPORTANT = 4,
+        P_OPTIONAL    = 5
+    ;
+
+    const size_t   buffer_size;
+    const size_t k_buffer_size;
+
+ private:
+    char CS_PIN; 
+    
+    std::priority_queue<
+    //                         priority size    data
+                    std::tuple<char, size_t, char*>,
+        std::vector<std::tuple<char, size_t, char*>>,
+        cmp_io_priority
+    > queuedos;
+
+    char* obuff;
+    size_t buffer_offset;
+
+    char* kbuff;
+    size_t k_buffer_offset;
+
+    int fd, kfd;
+};
 
 #endif
