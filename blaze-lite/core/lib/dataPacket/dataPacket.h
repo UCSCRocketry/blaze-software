@@ -4,40 +4,22 @@
 #include <Arduino.h>
 
 // Constants
-#define PACKET_VERSION 1
-#define PACKET_ID 0xAB  // optional ID for identifying your packet type
+#define PACKET_HEADER 0xAA // Start byte for UART synchronization
+#define PACKET_SIZE 17  // Fixed payload size per sensor
 
-// Define DataPact structure
-struct DataPacket {
-    uint8_t id;
-    uint8_t version;
-    uint32_t timestamp; 
-    float altitude;
-    float acceleration;
-    float temperature;
-    uint8_t state;
-    uint16_t checksum;
-};
+// Function declarations
 
-// return a created packet with filled data
-DataPacket createPacket(float altitude, float acceleration, float temperature, uint8_t state);
+// Builds and encodes a packet for transmission
+// sensorID: unique ID for sensor (e.g., 0x01 for barometer)
+// data: pointer to raw sensor bytes (float, int, etc.)
+// dataLength: number of bytes in sensor data
+// buffer: destination byte array to hold full packet
+void buildPacket(uint8_t sensorID, const uint8_t* data, size_t dataLength, uint8_t* buffer);
 
-// validate the packet's integrity with checksum
-bool validatePacket(const DataPacket& packet);
+// Sends the packet via Serial (or to transmitter)
+void sendPacket(const uint8_t* buffer, size_t length);
 
-// check if the packet has expected ID and version
-bool checkID(const DataPacket& packet, uint8_t expectedID = PACKET_ID);
-
-// decodes raw data into a DataPacket structure
-DataPacket decodePacket(const uint8_t* buffer);
-
-// Encodes a DataPacket into a byte buffer (for sending)
-void encodePacket(DataPacket& packet, uint8_t* buffer);
-
-// send the packet(to other groups)
-void sendPacket(const DataPacket& packet);
-
-// log to SD card
-void logPacket(const DataPacket& packet);
+// Calculates checksum for error detection
+uint8_t calculateChecksum(const uint8_t* buffer, size_t length);
 
 #endif
