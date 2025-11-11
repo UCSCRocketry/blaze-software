@@ -69,7 +69,18 @@ void accelerationStateChangeUpdate(){
     {
 
         // Won't work because acceleration is NOT constant in rocketry
-
+        /** 
+         * New Idea: Collect 3 altitude readings (over 0.1s intervals)
+         * and use 2nd derivative from the graph to estimate the acceleration.
+         *  - This means we get an acceleration reading every ~0.3s
+         * Kickstart a running average. Using the 1.5 * IQR rule, determine if a 
+         * new acceleration reading is an outlier. 
+         *  - If it is, reset the running average and "notify" that there's been
+         * a significant shift in acceleration (for now using Serial.print(),
+         * but implement a callback function at a later stage)
+         *  - If it isn't, continue updating the running acceleration average.
+         * 
+        */
         float altitude1 = MS5611.getAltitude();
         delay(1000);
         float altitude2 = MS5611.getAltitude(); 
