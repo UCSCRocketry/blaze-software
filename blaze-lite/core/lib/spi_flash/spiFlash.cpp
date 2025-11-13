@@ -75,7 +75,12 @@ char spiFlash::queue(size_t bytes, char* data, char priority) {
     return 0;
 }
 
-char spiFlash::buffer (const size_t bytes, const char* data) { //TODO: add err handeling
+char spiFlash::buffer (const size_t bytes, const char* data) {
+    //function call error handling
+    if (bytes == 0) return 0; //no bytes to write
+    if (data == nullptr) return -1; //null data pointer
+    if (obuff == nullptr) return -2; //null buffer pointer
+
     ssize_t err = 0;
     size_t offset = 0, temp = 0;
     
@@ -113,7 +118,12 @@ char spiFlash::flush (void) {
     return 0;
 }
 
-ssize_t spiFlash::kLog (const size_t bytes, const char* data) { //TODO: add err handeling
+ssize_t spiFlash::kLog (const size_t bytes, const char* data) {
+    //function call error handling
+    if (bytes == 0) return 0; //no bytes to write
+    if (data == nullptr) return -1; //null data pointer
+    if (kbuff == nullptr) return -2; //null buffer pointer
+
     ssize_t err = 0;
     size_t offset = 0, temp = 0;
     
