@@ -68,7 +68,16 @@ char spiFlash::getCS_PIN() { return CS_PIN; }
 void spiFlash::setCS_PIN(const char pin) { CS_PIN = pin; }
 
 //functionality methods:
-// ssize_t spiFlash::read(const size_t offset, const size_t bytes, const char* buffer) ;
+ssize_t spiFlash::read(const size_t offset, const size_t bytes, char* buffer){
+    //error handling
+    if (bytes == 0) return 0; //no bytes to read
+    if (buffer == nullptr) return -1; //null data pointer
+    if (lseek(fd, offset, SEEK_SET) == -1 ) return -2; //seek error
+
+    ssize_t bytes_read = ::read(fd, buffer, bytes);
+
+    return bytes_read;
+}
 
 char spiFlash::queue(size_t bytes, char* data, char priority) {
     queuedos.push(std::tie<char, size_t, char*>(priority, bytes, data));

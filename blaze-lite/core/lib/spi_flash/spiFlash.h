@@ -33,7 +33,7 @@ class spiFlash {
     void setCS_PIN(char pin);
 
     //functionality methods:
-    ssize_t read(const size_t offset, const size_t bytes, const char* buffer);
+    ssize_t read(const size_t offset, const size_t bytes, char* buffer);
 
     char queue(size_t bytes, char* data, char priority = P_UNIMPORTANT);
 
