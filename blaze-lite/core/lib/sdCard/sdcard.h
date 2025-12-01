@@ -40,16 +40,16 @@ class sdCard {
             CS_PIN = pin;
         };
 
-        //functionality methods 
-        ssize_t read(const size_t offset, const size_t bytes, char* buffer);
-        ssize_t write(const size_t bytes, const char* data);
-        char queue(size_t bytes, char* data, char priority = P_UNIMPORTANT);
-        char buffer (const size_t bytes, const char* data);
-        ssize_t kwrite (const size_t bytes, const char* data);
-        char flush (void);
-        ssize_t kLog(const size_t bytes, const char* data);
-        char kflush (void);
-        ssize_t tick (void);
+        //functionality methods, implement in sdCard.cpp instead; look at spi flash cpp file
+        ssize_t read(const size_t offset, const size_t bytes, char* buffer); //implement in cpp
+        ssize_t write(const size_t bytes, const char* data); //implement in cpp
+        char queue(size_t bytes, char* data, char priority = P_UNIMPORTANT); //don't use, just do buffer
+        char buffer (const size_t bytes, const char* data); //need
+        ssize_t kwrite (const size_t bytes, const char* data); //don't need 
+        char flush (void); //for buffer
+        ssize_t kLog(const size_t bytes, const char* data); //don't need
+        char kflush (void); //don't need
+        ssize_t tick (void); //don't need
 
         static constexpr const char
             P_MANDATORY   = 0, //just force writes this at next tick
@@ -65,6 +65,7 @@ class sdCard {
         private:
         char CS_PIN; 
         
+        //pick buffer/queue 
         std::priority_queue<
         //                         priority size    data
                         std::tuple<char, size_t, char*>,
