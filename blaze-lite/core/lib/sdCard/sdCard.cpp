@@ -54,7 +54,7 @@ void setup()
 
 
 
-void loop()
+void loop() //emptying buffer into file; goes in main, also everything besides init
 {
     Serial.println("This is on the BlackPill board");
 }
