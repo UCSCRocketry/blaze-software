@@ -10,7 +10,7 @@ class TelemetryLogger {
     public:
         TelemetryLogger(const char* filename, uint32_t flushInterval = 50);
         
-        // Initialize logger and create/open file
+        // Initialize logger and create or open file
         bool init();
         
         // Log a barometer reading to file
