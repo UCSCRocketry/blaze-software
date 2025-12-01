@@ -16,38 +16,29 @@
 #include <iostream>
 #include <fcntl.h>
 
+Adafruit_SPIFlash flash(&flashTransport);
+
+FatVolume fatfs;
+
+File32 root;
+File32 file;
+
 //TODO: Make private methods to simplify code
-/*
-    //char getCS_PIN(char pin);
 
-    //void setCS_PIN(char pin);
+constexpr const char
+     spiFlash::P_MANDATORY   = 0, //just force writes this at next tick
+     spiFlash::P_URGENT      = 1,
+     spiFlash::P_IMPORTANT   = 2,
+     spiFlash::P_STD         = 3,
+     spiFlash::P_UNIMPORTANT = 4,
+     spiFlash::P_OPTIONAL    = 5
+;
 
-    ssize_t read(const size_t offset, const size_t bytes, const char* buffer);
-
-    //char queue(size_t bytes, char* data, int priority = P_UNIMPORTANT);
-
-    //char buffer (const size_t bytes, char* data);
-
-    ssize_t write (const size_t bytes, const char* data);
-
-    //ssize_t kwrite (const size_t bytes, const char* data); 
-
-    //void flush (void);
-
-    //ssize_t kLog (const size_t bytes, const char* data); //buffer but with k stuff
-
-    //void kflush (void); //flush but for k stuff
-
-    ssize_t tick(void) ;
-*/
 //Constructor:
 spiFlash::spiFlash (const char cs_pin, const size_t buffer_size, const size_t k_buffer_size) : CS_PIN(cs_pin), buffer_size(buffer_size), k_buffer_size(k_buffer_size), buffer_offset(0), k_buffer_offset(0) {
     obuff = new char[  buffer_size];
     kbuff = new char[k_buffer_size];
     queuedos = std::priority_queue<std::tuple<char, size_t, char*>, std::vector<std::tuple<char, size_t, char*>>, cmp_io_priority>();
-    
-    fd  = open("./spifTestNormal.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); //TODO: remove once write() works
-    kfd = open("./spifTestKernel.txt", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 }
 
 spiFlash::~spiFlash () {
@@ -59,6 +50,12 @@ spiFlash::~spiFlash () {
 
     delete[] obuff;
     delete[] kbuff;
+
+}
+
+//hardware setup function (this should be called in the main file setup loop):
+void spiFlash::startUp() {
+    
 }
 
 //Get Methods:
@@ -160,12 +157,3 @@ char spiFlash::kflush (void) {
 bool spiFlash::cmp_io_priority:: operator()(const std::tuple<char, size_t, char*>& l, const std::tuple<char, size_t, char*>& r) const {
         return std::get<0>(l) > std::get<0>(r);
 }
-
-// constexpr const char
-//     spiFlash::P_MANDATORY   = 0, //just force writes this at next tick
-//     spiFlash::P_URGENT      = 1,
-//     spiFlash::P_IMPORTANT   = 2,
-//     spiFlash::P_STD         = 3,
-//     spiFlash::P_UNIMPORTANT = 4,
-//     spiFlash::P_OPTIONAL    = 5
-// ;
