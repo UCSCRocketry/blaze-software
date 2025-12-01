@@ -1,12 +1,20 @@
 
 #if defined(_WIN32) || defined(_WIN64)
-  #include <cstddef>
+  #ifndef SD_CARD_H
+  #define SD_CARD_H
+  #include <queue> 
+  #include <tuple>
+  #include <stdint.h>
+  #include <unistd.h>
+  #include <string.h>
+  #include <cmath>
+  #include <vector>
+  #include <fstream>
+  #include <iostream>
   typedef std::ptrdiff_t ssize_t;
   #else
   #include <sys/types.h>
 #endif
-#include <queue>
-#include <tuple>
 struct cmp_io_priority {
     bool operator()(const std::tuple<char, size_t, char*>& a, const std::tuple<char, size_t, char*>& b) {
         return std::get<0>(a) > std::get<0>(b); // Lower priority value means higher priority
@@ -16,7 +24,8 @@ struct cmp_io_priority {
 
 class sdCard {
     public :
-        sdCard();
+        sdCard(uint8_t cs_pin = 3, size_t buf_size = 512, size_t k_buf_size = 2048);
+        ~sdCard();
         void init();
         bool isInitialized();
         void readFile(const char* filename);
@@ -38,15 +47,18 @@ class sdCard {
         char buffer (const size_t bytes, const char* data);
         ssize_t kwrite (const size_t bytes, const char* data);
         char flush (void);
+        ssize_t kLog(const size_t bytes, const char* data);
+        char kflush (void);
+        ssize_t tick (void);
 
         static constexpr const char
-        P_MANDATORY   = 0, //just force writes this at next tick
-        P_URGENT      = 1,
-        P_IMPORTANT   = 2,
-        P_STD         = 3,
-        P_UNIMPORTANT = 4,
-        P_OPTIONAL    = 5
-    ;
+            P_MANDATORY   = 0, //just force writes this at next tick
+            P_URGENT      = 1,
+            P_IMPORTANT   = 2,
+            P_STD         = 3,
+            P_UNIMPORTANT = 4,
+            P_OPTIONAL    = 5
+        ;
         const size_t   buffer_size;
         const size_t k_buffer_size;
 
@@ -69,9 +81,13 @@ class sdCard {
         int fd, kfd;
 
 };
+<<<<<<< HEAD:blaze-lite/core/lib/sdcard_class
 struct BarometerReading {
     unsigned long timestamp;
     float pressure;
     float altitude;
     float temperature;
 };
+=======
+#endif // SD_CARD_H
+>>>>>>> b05e4da8f343e64fb8e34ffa08e93f01ca9b0a5d:blaze-lite/core/lib/sdcard.h
