@@ -69,3 +69,9 @@ class sdCard {
         int fd, kfd;
 
 };
+struct BarometerReading {
+    unsigned long timestamp;
+    float pressure;
+    float altitude;
+    float temperature;
+};
