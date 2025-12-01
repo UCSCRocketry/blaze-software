@@ -81,4 +81,13 @@ class sdCard {
         int fd, kfd;
 
 };
+<<<<<<< HEAD:blaze-lite/core/lib/sdcard_class
+struct BarometerReading {
+    unsigned long timestamp;
+    float pressure;
+    float altitude;
+    float temperature;
+};
+=======
 #endif // SD_CARD_H
+>>>>>>> b05e4da8f343e64fb8e34ffa08e93f01ca9b0a5d:blaze-lite/core/lib/sdcard.h
