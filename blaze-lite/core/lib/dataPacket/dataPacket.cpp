@@ -1,32 +1,65 @@
-#include "DATA_PACKET_H"
+#include "dataPacket.h"
 
-// Compute checksum (simple XOR or sum of bytes)
-uint8_t calculateChecksum(const uint8_t* buffer, size_t length) {
-    uint8_t sum = 0;
-    for (size_t i = 0; i < length; i++) {
-        sum ^= buffer[i]; // XOR checksum (lightweight and fast)
-    }
-    return sum;
-}
-
-void buildPacket(uint8_t sensorID, const uint8_t* data, size_t dataLength, uint8_t* buffer) {
-    // Start with a clean buffer
+DataPacket::DataPacket(StartByte startType)
+    : startByte(startType), sequenceID(0)
+{
     memset(buffer, 0, PACKET_SIZE);
-
-    // Header and Sensor ID
-    buffer[0] = PACKET_HEADER;
-    buffer[1] = sensorID;
-
-    // Copy data bytes manually for endianness control
-    for (size_t i = 0; i < dataLength && i + 2 < PACKET_SIZE - 1; i++) {
-        buffer[i + 2] = data[i]; // store payload starting at index 2
-    }
-
-    // Add checksum at the end (excluding checksum byte)
-    buffer[PACKET_SIZE - 1] = calculateChecksum(buffer, PACKET_SIZE - 1);
 }
 
-void sendPacket(const uint8_t* buffer, size_t length) {
-    // Send over UART (transmitter group can replace with their own send function)
-    Serial.write(buffer, length);
+void DataPacket::writeUInt(uint32_t val, uint8_t* buf, size_t& offset, int nBytes)
+{
+    // Big-endian, write MSB first
+    for (int i = nBytes - 1; i >= 0; --i) {
+        buf[offset++] = (val >> (8 * i)) & 0xFF;
+    }
+}
+
+uint16_t DataPacket::computeCRC(const uint8_t* data, size_t len)
+{
+    uint16_t crc = 0xFFFF;
+    for (size_t i = 0; i < len; i++) {
+        crc ^= (uint16_t)data[i] << 8;
+        for (int j = 0; j < 8; j++) {
+            if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+            else crc <<= 1;
+        }
+    }
+    return crc;
+}
+
+void DataPacket::encodePacket(const uint8_t payload[PAYLOAD_SIZE],
+                              char idA, char idB)
+{
+    size_t offset = 0;
+
+    // 1. Start byte
+    buffer[offset++] = static_cast<uint8_t>(startByte);
+
+    // 2. Sequence ID (big-endian uint32)
+    writeUInt(sequenceID++, buffer, offset, 4);
+
+    // 3. Message ID (2 chars)
+    buffer[offset++] = static_cast<uint8_t>(idA);
+    buffer[offset++] = static_cast<uint8_t>(idB);
+
+    // 4. Timestamp
+    writeUInt(millis(), buffer, offset, 4);
+
+    // 5. Payload (17 bytes, written manually)
+    for (size_t i = 0; i < PAYLOAD_SIZE; i++) {
+        buffer[offset++] = payload[i];
+    }
+
+    // 6. CRC-16 over all prior bytes
+    uint16_t crc = computeCRC(buffer, offset);
+    buffer[offset++] = (crc >> 8) & 0xFF;
+    buffer[offset++] = crc & 0xFF;
+
+    // 7. End bytes <CR><LF>
+    buffer[offset++] = 0x0D;
+    buffer[offset++] = 0x0A;
+}
+
+uint8_t* DataPacket::getBuffer() {
+    return buffer;
 }
