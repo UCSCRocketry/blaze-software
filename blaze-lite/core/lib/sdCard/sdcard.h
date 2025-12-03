@@ -41,7 +41,7 @@ class sdCard {
         };
 
         //functionality methods, implement in sdCard.cpp instead; look at spi flash cpp file
-        ssize_t read(const size_t offset, const size_t bytes, char* buffer); //implement in cpp
+        ssize_t read(const size_t offset, const size_t bytes, char* buffer); //done
         ssize_t write(const size_t bytes, const char* data); //implement in cpp
         char queue(size_t bytes, char* data, char priority = P_UNIMPORTANT); //don't use, just do buffer
         char buffer (const size_t bytes, const char* data); //need
