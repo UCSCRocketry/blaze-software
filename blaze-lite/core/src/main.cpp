@@ -6,6 +6,8 @@
 #include <Statistic.h>
 #include <time.h>
 #include <chrono>
+#include "telemetry_logger.h"
+extern TelemetryLogger telemetryLogger;
 
 using namespace std;
 
@@ -18,6 +20,25 @@ time_t START_TIME = chrono::system_clock::to_time_t(chrono::system_clock::now())
 MS5611 MS5611(0x77);
 
 statistic::Statistic<float, u_int32_t, true> stats(MS5611.read());
+
+struct BarometerReading {
+    unsigned long timestamp;
+    float temperature;
+    float pressure;
+    float altitude;
+    float acceleration;
+};
+
+
+BarometerReading createReading(float accel) {
+    BarometerReading r;
+    r.timestamp = millis();
+    r.temperature = MS5611.getTemperature();
+    r.pressure = MS5611.getPressure();
+    r.altitude = MS5611.getAltitude();
+    r.acceleration = accel;
+    return r;
+}
 
 void setup()
 {
@@ -138,5 +159,6 @@ void accelerationStateChangeUpdate(){
         stats.clear(); // reset to baseline - don't want to do calculations based on old state
         stats.add(accel); // new baseline
     }
-    
+    BarometerReading reading = createReading(accel);
+    telemetryLogger.logReading(reading);
 }
