@@ -1,11 +1,11 @@
 #ifndef SPI_FLASH_H
 #define SPI_FLASH_H
 
-// #include <Arduino.h>
-// #include <SPI.h>
-// #include <SdFat.h>
+#include <Arduino.h>
+#include <SPI.h>
+#include <SdFat.h>
 
-// #include <Adafruit_SPIFlash.h>
+#include <Adafruit_SPIFlash.h>
 
 #include <queue> 
 #include <tuple>
@@ -25,6 +25,9 @@ class spiFlash {
 
     //destructor:
     ~spiFlash() ;
+
+    //setup function:
+    void startUp();
 
     //Get Methods:
     char getCS_PIN();
@@ -48,8 +51,6 @@ class spiFlash {
     ssize_t kLog (const size_t bytes, const char* data);
 
     char kflush (void);
-
-    ssize_t tick(void) ;
 
     //types
     struct cmp_io_priority {
