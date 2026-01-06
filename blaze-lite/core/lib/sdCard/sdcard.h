@@ -3,6 +3,8 @@
 #include <SD.h>
 #include <SdFat.h>
 
+#include <string>
+
 class SDCard {
     public:
         //Constructors
@@ -20,11 +22,18 @@ class SDCard {
         //Set Methods
         void setCS_PIN(char pin);
 
-        //functionality methods
-        ssize_t write(const size_t bytes, const char* data);
-        
-        ssize_t read(const size_t offset, const size_t bytes, char* buffer);
+        //data read/write methods
+        ssize_t writeData(const size_t bytes, const char* data);
+
+        ssize_t readData(const size_t bytes, char* buffer);
+
+        //log read/write methods
+        ssize_t writeLog(const char* logEntry);
+
+        ssize_t readLog(char* buffer, const size_t maxLength);
 
     private:
         char CS_PIN;
+        string Datafile = "Data.txt";
+        string Logfile = "Log.txt";
 };
