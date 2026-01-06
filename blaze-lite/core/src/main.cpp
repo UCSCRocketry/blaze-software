@@ -6,6 +6,7 @@
 #include <Statistic.h>
 #include <time.h>
 #include <chrono>
+#include "accelerationState.h"
 #include "telemetry_logger.h"
 extern TelemetryLogger telemetryLogger;
 
@@ -17,74 +18,10 @@ const float TIME_INCREMENT = 0.1;
 
 time_t START_TIME = chrono::system_clock::to_time_t(chrono::system_clock::now());
 
-MS5611 MS5611(0x77);
+// MS5611 MS5611(0x77);
+MS5611 baroObject(0x77);
 
-statistic::Statistic<float, u_int32_t, true> stats(MS5611.read());
-
-struct BarometerReading {
-    unsigned long timestamp;
-    float temperature;
-    float pressure;
-    float altitude;
-    float acceleration;
-};
-
-
-BarometerReading createReading(float accel) {
-    BarometerReading r;
-    r.timestamp = millis();
-    r.temperature = MS5611.getTemperature();
-    r.pressure = MS5611.getPressure();
-    r.altitude = MS5611.getAltitude();
-    r.acceleration = accel;
-    return r;
-}
-
-void setup()
-{
-    Serial.begin(baudrate); // From the arduino library
-    while (!Serial)
-    {
-        Serial.println();
-        Serial.println(__FILE__);
-        Serial.print("MS5611_LIB_VERSION: ");
-        Serial.println(MS5611_LIB_VERSION);
-        Serial.println();
-        delay(100);
-    }
-    Serial.println("This is on the BlackPill board");
-
-    Wire.begin();
-
-    
-
-    if (MS5611.begin() == true)
-    {
-    Serial.print("MS5611 found: ");
-    Serial.println(MS5611.getAddress());
-    }
-    else
-    {
-    Serial.println("MS5611 not found. halt.");
-    // while (1);
-    }
-
-    stats.clear();
-
-    Serial.println();
-    Serial.println("Test Statistics for MS5611");
-    Serial.println("Celsius\tmBar\tPascal");
-    Serial.print(MS5611.getTemperature());
-    Serial.print("\t");
-    Serial.print(MS5611.getPressure());
-    Serial.print("\t");
-    Serial.println(MS5611.getPressurePascal());
-
-    /* Next step here: Start a timer to log time intervals (since launch or at least
-     * when the barometer kickstarts)
-     **/
-    
-}
+statistic::Statistic<float, u_int32_t, true> stats(baroObject.read());
 
 /**
  * Approximates inst. acceleration by calculating 2nd derivative
@@ -99,23 +36,6 @@ float calculateAcceleration(vector<float> altitudes, float dt) {
     float h2 = altitudes[1];
     float h3 = altitudes[2];
     return (h3 - 2 * h2 + h1) / (dt * dt); 
-}
-
-
-
-void loop()
-{
-    Wire.begin();
-    MS5611.read();           //  note no error checking => "optimistic".
-    
-    Serial.println("Temperature (°C)\tPressure (mBar)\t Altitude (m)");
-    Serial.print(MS5611.getTemperature(), 2);
-    Serial.print('\t');
-    Serial.print(MS5611.getPressure(), 2);
-    Serial.print('\t');
-    Serial.print(MS5611.getAltitude(), 2);
-    Serial.println();
-    accelerationStateChangeUpdate();
 }
 
 void accelerationStateChangeUpdate(){
@@ -135,8 +55,8 @@ void accelerationStateChangeUpdate(){
    int sampleSize = 3;
     vector<float> altitudes(sampleSize);
     for (int i = 0; i < sampleSize; i++) {
-        MS5611.read();
-        altitudes.push_back(MS5611.getAltitude());
+        baroObject.read();
+        altitudes.push_back(baroObject.getAltitude());
         delay(100); //0.1s
     }
     float accel = calculateAcceleration(altitudes, TIME_INCREMENT);
@@ -159,6 +79,66 @@ void accelerationStateChangeUpdate(){
         stats.clear(); // reset to baseline - don't want to do calculations based on old state
         stats.add(accel); // new baseline
     }
-    BarometerReading reading = createReading(accel);
-    telemetryLogger.logReading(reading);
+    
 }
+void setup()
+{
+    Serial.begin(baudrate); // From the arduino library
+    while (!Serial)
+    {
+        Serial.println();
+        Serial.println(__FILE__);
+        Serial.print("MS5611_LIB_VERSION: ");
+        Serial.println(MS5611_LIB_VERSION);
+        Serial.println();
+        delay(100);
+    }
+    Serial.println("This is on the BlackPill board");
+
+    Wire.begin();
+
+    
+
+    if (baroObject.begin() == true)
+    {
+    Serial.print("baroObject found: ");
+    Serial.println(baroObject.getAddress());
+    }
+    else
+    {
+    Serial.println("baroObject not found. halt.");
+    // while (1);
+    }
+
+    stats.clear();
+
+    Serial.println();
+    Serial.println("Test Statistics for baroObject");
+    Serial.println("Celsius\tmBar\tPascal");
+    Serial.print(baroObject.getTemperature());
+    Serial.print("\t");
+    Serial.print(baroObject.getPressure());
+    Serial.print("\t");
+    Serial.println(baroObject.getPressurePascal());
+
+    /* Next step here: Start a timer to log time intervals (since launch or at least
+     * when the barometer kickstarts)
+     **/
+    
+}
+
+void loop()
+{
+    Wire.begin();
+    baroObject.read();           //  note no error checking => "optimistic".
+    
+    Serial.println("Temperature (°C)\tPressure (mBar)\t Altitude (m)");
+    Serial.print(baroObject.getTemperature(), 2);
+    Serial.print('\t');
+    Serial.print(baroObject.getPressure(), 2);
+    Serial.print('\t');
+    Serial.print(baroObject.getAltitude(), 2);
+    Serial.println();
+    accelerationStateChangeUpdate();
+}
+
