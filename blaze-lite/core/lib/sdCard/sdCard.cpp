@@ -36,17 +36,6 @@ void sdCard::startUp() {
     if (!logFile) {
         Serial.println("Error opening Log.txt");
     }
-
-    //test read&write
-    logFile.write("SD Card Test Log Entry\n");
-    //check of the file is empty
-    if (logFile.size() == 0) {
-        Serial.println("Log.txt cannot be read or was not able to be written to.");
-    } else {
-        logFile.seek(0);
-        logFile.remove();
-        Serial.println("Log.txt is ready for use.");
-    }
 }
 
 char sdCard::getCS_PIN() {
