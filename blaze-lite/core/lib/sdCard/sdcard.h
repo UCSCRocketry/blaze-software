@@ -13,7 +13,6 @@ class SDCard {
         //Destructor
         ~SDCard(); 
 
-        [[deprecated("included in constructor")]]
         //setup function
         void startUp();
 
