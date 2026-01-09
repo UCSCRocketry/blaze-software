@@ -13,11 +13,13 @@ sdCard::SDCard(const int csPin, const size_t buffersize) {
 }
 
 sdCard::~SDCard() {
-    //might not need this
+    sdFile.close();
 }
 
 void sdCard::startUp() {
     //sd card init
+    //serial begin should be called in the initialize state from state machine
+    Serial.print("Initializing SD card...");
     if (!SD.begin(this->CS_PIN)) {
         Serial.println("Card failed, or not present");
         return;
@@ -29,6 +31,13 @@ void sdCard::startUp() {
         Serial.println("Error opening Log.txt");
     }
     //test read&write
+    sdFile.write("SD Card Test Log Entry\n");
+    //check of the file is empty
+    if (sdFile.size() == 0) {
+        Serial.println("Log.txt cannot be read or was not able to be written to.");
+    } else {
+        Serial.println("Log.txt is ready for use.");
+    }
 }
 
 char sdCard::getCS_PIN() {
