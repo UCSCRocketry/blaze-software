@@ -8,7 +8,7 @@
 class SDCard {
     public:
         //Constructors
-        SDCard(const int csPin, const size_t buffersize);
+        SDCard(const int csPin);
 
         //Destructor
         ~SDCard(); 

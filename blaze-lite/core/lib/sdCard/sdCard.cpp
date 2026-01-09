@@ -9,11 +9,11 @@
 File dataFile; // global data file object
 File logFile;  // global log file object
 
-sdCard::SDCard(const int csPin, const size_t buffersize) {
+sdCard::sdCard(const int csPin) {
     this->CS_PIN = csPin;
 }
 
-sdCard::~SDCard() {
+sdCard::~sdCard() {
     sdFile.close();
 }
 
