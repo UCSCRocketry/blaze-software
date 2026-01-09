@@ -86,4 +86,22 @@ ssize_t sdCard::readData(const size_t bytes, char* buffer) {
     }
 }
 
+ssize_t sdCard::writeLog(const size_t bytes, const char* data) {
+    if (dataFile) {
+        size_t written = logFile.write((const uint8_t*)data, bytes);
+        dataFile.flush();
+        return written;
+    } else {
+        return -1; // error
+    }
+}
 
+ssize_t sdCard::readLog(const size_t bytes, char* buffer) {
+    if (dataFile) {
+        dataFile.seek(0); // go to the beginning
+        size_t readBytes = logFile.readBytes(buffer, bytes);
+        return readBytes;
+    } else {
+        return -1; // error
+    }
+}
