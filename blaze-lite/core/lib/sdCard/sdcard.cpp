@@ -4,7 +4,7 @@
         include the corresponding header file in your main program, DO NOT directly call this cpp file
 */
 
-#include "sdcard.h"
+#include "sdCard.h"
 
 File dataFile; // global data file object
 File logFile;  // global log file object
@@ -14,13 +14,14 @@ sdCard::sdCard(const int csPin) {
 }
 
 sdCard::~sdCard() {
-    sdFile.close();
+    dataFile.close();
+    logFile.close();
 }
 
 void sdCard::startUp() {
     //sd card init
     //serial begin should be called in the initialize state from state machine
-    Serial.print("Initializing SD card...");
+    Serial.println("Initializing SD card...");
     if (!SD.begin(this->CS_PIN)) {
         Serial.println("Card failed, or not present");
         return;
@@ -66,20 +67,20 @@ ssize_t sdCard::readData(const size_t bytes, char* buffer) {
     }
 }
 
-ssize_t sdCard::writeLog(const size_t bytes, const char* data) {
-    if (dataFile) {
-        size_t written = logFile.write((const uint8_t*)data, bytes);
-        dataFile.flush();
+ssize_t sdCard::writeLog(const char* logEntry, const size_t length) {
+    if (logFile) {
+        size_t written = logFile.write((const uint8_t*)logEntry, length);
+        logFile.flush();
         return written;
     } else {
         return -1; // error
     }
 }
 
-ssize_t sdCard::readLog(const size_t bytes, char* buffer) {
-    if (dataFile) {
-        dataFile.seek(0); // go to the beginning
-        size_t readBytes = logFile.readBytes(buffer, bytes);
+ssize_t sdCard::readLog(char* buffer, const size_t maxLength) {
+    if (logFile) {
+        logFile.seek(0); // go to the beginning
+        size_t readBytes = logFile.readBytes(buffer, maxLength);
         return readBytes;
     } else {
         return -1; // error

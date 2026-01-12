@@ -1,17 +1,16 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <SD.h>
-#include <SdFat.h>
 
 #include <string>
 
-class SDCard {
+class sdCard {
     public:
         //Constructors
-        SDCard(const int csPin);
+        sdCard(const int csPin);
 
         //Destructor
-        ~SDCard(); 
+        ~sdCard(); 
 
         //setup function
         void startUp();
@@ -28,12 +27,12 @@ class SDCard {
         ssize_t readData(const size_t bytes, char* buffer);
 
         //log read/write methods
-        ssize_t writeLog(const char* logEntry);
+        ssize_t writeLog(const char* logEntry, const size_t length);
 
         ssize_t readLog(char* buffer, const size_t maxLength);
 
     private:
         char CS_PIN;
-        string Datafile = "Data.txt";
-        string Logfile = "Log.txt";
+        String Datafile = "Data.txt";
+        String Logfile = "Log.txt";
 };
