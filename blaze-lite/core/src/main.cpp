@@ -29,7 +29,7 @@ void loop()
 
     char resp[32] = {0};
     rfd.recv((uint8_t*)resp, sizeof(resp)-1);
-    rfd.handleReceiving(resp);
+    rfd.handleATReceiving(resp);
 
     Serial.println("Sending Hello from blackpill");
     const char* cmd = "Hello From Blackpill\n\r";
