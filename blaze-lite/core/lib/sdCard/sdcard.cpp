@@ -9,7 +9,7 @@
 File dataFile; // global data file object
 File logFile;  // global log file object
 
-sdCard::sdCard(const int csPin) {
+sdCard::sdCard(const uint8_t csPin) {
     this->CS_PIN = csPin;
 }
 
@@ -22,6 +22,13 @@ void sdCard::startUp() {
     //sd card init
     //serial begin should be called in the initialize state from state machine
     Serial.println("Initializing SD card...");
+    
+    // Explicitly initialize SPI
+    SPI.begin();
+    pinMode(this->CS_PIN, OUTPUT);
+    digitalWrite(this->CS_PIN, HIGH);
+    delay(100); // Allow SD card to power up
+    
     if (!SD.begin(this->CS_PIN)) {
         Serial.println("Card failed, or not present");
         return;
@@ -39,11 +46,11 @@ void sdCard::startUp() {
     }
 }
 
-char sdCard::getCS_PIN() {
+uint8_t sdCard::getCS_PIN() {
     return this->CS_PIN;
 }
 
-void sdCard::setCS_PIN(char pin) {
+void sdCard::setCS_PIN(uint8_t pin) {
     this->CS_PIN = pin;
 }
 

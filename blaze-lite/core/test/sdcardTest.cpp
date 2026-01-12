@@ -1,136 +1,95 @@
-#include "../lib/sdCard/sdCard.h"
+/*
+    * sdCard.cpp - SD Card library for Blaze
+    * To use:
+        include the corresponding header file in your main program, DO NOT directly call this cpp file
+*/
 
-#include <string.h>
+#include "sdCard.h"
 
-#define MSG1 "This is the first msg."
-#define MSG2 "This is the second msg."
+File dataFile; // global data file object
+File logFile;  // global log file object
 
-#define RDBUF_SIZE 256
-char readBuff[RDBUF_SIZE];
-
-void setup() {
-    Serial.begin(9600); // open the serial port at 9600 bps:
-    delay(5000); // Wait for serial connection to establish
-    
-    Serial.println("Starting SD card test...");
-    
-    sdCard sd(PB15); // CS_SD is on PB15
-    sd.startUp(); // Initialize the SD card
-    int buf;
-    memset (readBuff, 0, RDBUF_SIZE * sizeof(char));
-    
-    Serial.print("csPin: ");
-    Serial.print(sd.getCS_PIN());
-    Serial.print('\n');
-
-    //test write
-    if ((buf = sd.writeData(sizeof(MSG1), MSG1)) < -1) {
-        Serial.print("writeData failed: MSG1");
-        return;
-    }
-    Serial.print("WriteData wrote ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG1.\n");
-    // Serial.print("The message it wrote is:\n  hex:"); //No access to the acctual files :sob:
-
-    if ((buf = sd.writeData(sizeof(MSG2), MSG2)) < -1) {
-        Serial.print("writeData failed: MSG2");
-        return;
-    }
-    Serial.print("WriteData wrote ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG2.\n");
-
-    //test read
-    if ((buf = sd.readData(sizeof(MSG1), readBuff)) < -1) {
-        Serial.print("readData failed: MSG1");
-        return;
-    }
-    Serial.print("ReadData read ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG1.\n");
-    Serial.print("The message it read is:\n  hex:");
-    for (int i = 0; i < buf; ++i) {
-        Serial.print(readBuff[i], HEX);
-        Serial.print("  ");
-    }
-    Serial.print("\n  Text: \"");
-    Serial.print(readBuff); //assuming it can handel null termianted strings
-    Serial.print("\"\n");
-
-    if ((buf = sd.readData(sizeof(MSG2), readBuff)) < -1) {
-        Serial.print("readData failed: MSG2");
-        return;
-    }
-    Serial.print("ReadData read ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG2.\n");
-    Serial.print("The message it read is:\n  hex:");
-    for (int i = 0; i < buf; ++i) {
-        Serial.print(readBuff[i], HEX);
-        Serial.print("  ");
-    }
-    Serial.print("\n  Text: \"");
-    Serial.print(readBuff); //assuming it can handel null termianted strings
-    Serial.print("\"\n");
-
-    //log
-
-    //test write
-    if ((buf = sd.writeLog(MSG1, sizeof(MSG1))) < -1) {
-        Serial.print("writeLog failed: MSG1");
-        return;
-    }
-    Serial.print("WriteLog wrote ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG1.\n");
-    // Serial.print("The message it wrote is:\n  hex:"); //No access to the acctual files :sob:
-
-    if ((buf = sd.writeLog(MSG2, sizeof(MSG2))) < -1) {
-        Serial.print("writeLog failed: MSG2");
-        return;
-    }
-    Serial.print("WriteLog wrote ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG2.\n");
-
-    //test read
-    if ((buf = sd.readLog(readBuff, sizeof(MSG1))) < -1) {
-        Serial.print("readLog failed: MSG1");
-        return;
-    }
-    Serial.print("ReadLog read ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG1.\n");
-    Serial.print("The message it read is:\n  hex:");
-    for (int i = 0; i < buf; ++i) {
-        Serial.print(readBuff[i], HEX);
-        Serial.print("  ");
-    }
-    Serial.print("\n  Text: \"");
-    Serial.print(readBuff); //assuming it can handel null termianted strings
-    Serial.print("\"\n");
-
-    if ((buf = sd.readLog(readBuff, sizeof(MSG2))) < -1) {
-        Serial.print("readLog failed: MSG2");
-        return;
-    }
-    Serial.print("ReadLog read ");
-    Serial.print(buf);
-    Serial.print("bytes of MSG2.\n");
-    Serial.print("The message it read is:\n  hex:");
-    for (int i = 0; i < buf; ++i) {
-        Serial.print(readBuff[i], HEX);
-        Serial.print("  ");
-    }
-    Serial.print("\n  Text: \"");
-    Serial.print(readBuff); //assuming it can handel null termianted strings
-    Serial.print("\"\n");
-
-    //tests passed
-    Serial.print("\nAll Tests Passed");
+sdCard::sdCard(const uint8_t csPin) {
+    this->CS_PIN = csPin;
 }
 
-void loop () {
-    //
+sdCard::~sdCard() {
+    dataFile.close();
+    logFile.close();
+}
+
+void sdCard::startUp() {
+    //sd card init
+    //serial begin should be called in the initialize state from state machine
+    Serial.println("Initializing SD card...");
+    
+    // Explicitly initialize SPI
+    SPI.begin();
+    pinMode(this->CS_PIN, OUTPUT);
+    digitalWrite(this->CS_PIN, HIGH);
+    delay(100); // Allow SD card to power up
+    
+    if (!SD.begin(this->CS_PIN)) {
+        Serial.println("Card failed, or not present");
+        return;
+    }
+    Serial.println("SD Card initialized.");
+
+    //open file
+    dataFile = SD.open("Data.txt", FILE_WRITE);
+    if (!dataFile) {
+        Serial.println("Error opening Data.txt");
+    }
+    logFile = SD.open("Log.txt", FILE_WRITE);
+    if (!logFile) {
+        Serial.println("Error opening Log.txt");
+    }
+}
+
+uint8_t sdCard::getCS_PIN() {
+    return this->CS_PIN;
+}
+
+void sdCard::setCS_PIN(uint8_t pin) {
+    this->CS_PIN = pin;
+}
+
+ssize_t sdCard::writeData(const size_t bytes, const char* data) {
+    if (dataFile) {
+        size_t written = dataFile.write((const uint8_t*)data, bytes);
+        dataFile.flush();
+        return written;
+    } else {
+        return -1; // error
+    }
+}
+
+ssize_t sdCard::readData(const size_t bytes, char* buffer) {
+    if (dataFile) {
+        dataFile.seek(0); // go to the beginning
+        size_t readBytes = dataFile.readBytes(buffer, bytes);
+        return readBytes;
+    } else {
+        return -1; // error
+    }
+}
+
+ssize_t sdCard::writeLog(const char* logEntry, const size_t length) {
+    if (logFile) {
+        size_t written = logFile.write((const uint8_t*)logEntry, length);
+        logFile.flush();
+        return written;
+    } else {
+        return -1; // error
+    }
+}
+
+ssize_t sdCard::readLog(char* buffer, const size_t maxLength) {
+    if (logFile) {
+        logFile.seek(0); // go to the beginning
+        size_t readBytes = logFile.readBytes(buffer, maxLength);
+        return readBytes;
+    } else {
+        return -1; // error
+    }
 }
