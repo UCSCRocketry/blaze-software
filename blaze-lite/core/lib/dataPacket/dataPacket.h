@@ -11,6 +11,18 @@ enum class StartByte : uint8_t {
     EXPECT_ACK         = '$'
 };
 
+// Decoded packet structure for easy access to packet fields
+struct DecodedPacket {
+    StartByte startByte;
+    uint32_t sequenceID;
+    char idA;
+    char idB;
+    uint32_t timestamp;
+    uint8_t payload[17];
+    uint16_t crc;
+    bool isValid;  // true if packet decoded successfully
+};
+
 class DataPacket {
 public:
     static constexpr size_t PAYLOAD_SIZE = 17;
@@ -31,6 +43,12 @@ public:
      */
     void encodePacket(const uint8_t payload[PAYLOAD_SIZE], char idA, char idB);
 
+    /**
+     * Decode a raw packet buffer into a DecodedPacket structure.
+     * Returns true if decode was successful, false otherwise.
+     */
+    bool decodePacket(const uint8_t* rawPacket, size_t packetLen, DecodedPacket& decoded);
+
     uint8_t* getBuffer();
     size_t getLength() const { return PACKET_SIZE; }
 
@@ -40,7 +58,6 @@ private:
     uint8_t buffer[PACKET_SIZE];
 
     void writeUInt(uint32_t val, uint8_t* buf, size_t& offset, int nBytes);
+    uint32_t readUInt(const uint8_t* buf, size_t& offset, int nBytes);
     uint16_t computeCRC(const uint8_t* data, size_t len);
 };
-
-#endif
