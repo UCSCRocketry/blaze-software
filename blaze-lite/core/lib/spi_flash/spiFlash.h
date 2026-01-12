@@ -52,6 +52,8 @@ class spiFlash {
 
     char kflush (void);
 
+    ssize_t tick (void);
+
     //types
     struct cmp_io_priority {
         bool operator()(const std::tuple<char, size_t, char*>& l, const std::tuple<char, size_t, char*>& r) const ;

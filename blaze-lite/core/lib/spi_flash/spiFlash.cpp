@@ -20,8 +20,9 @@ Adafruit_SPIFlash flash(&flashTransport);
 
 FatVolume fatfs;
 
-File32 root;
-File32 file;
+// File32 root;
+// File32 file;
+File32 fd, kfd;
 
 //TODO: Make private methods to simplify code
 
@@ -54,8 +55,25 @@ spiFlash::~spiFlash () {
 }
 
 //hardware setup function (this should be called in the main file setup loop):
+//https://github.com/adafruit/Adafruit_SPIFlash/blob/master/examples/SdFat_datalogging/SdFat_datalogging.ino
 void spiFlash::startUp() {
-    
+    if (!flash.begin()) {
+        Serial.println("Error, failed to initialize flash chip!");
+        while (1) {
+        delay(1);
+        }
+    }
+    Serial.print("Flash chip JEDEC ID: 0x");
+    Serial.println(flash.getJEDECID(), HEX);
+
+    // First call begin to mount the filesystem.  Check that it returns true
+    // to make sure the filesystem was mounted.
+    if (!fatfs.begin(&flash)) {
+        Serial.println("Error, failed to mount newly formatted filesystem!");
+        Serial.println("Was the flash chip formatted with the fatfs_format example?");
+        while (1) delay(1);
+    }
+    Serial.println("Mounted filesystem!");
 }
 
 //Get Methods:
@@ -107,11 +125,19 @@ char spiFlash::buffer (const size_t bytes, const char* data) {
 
 //return value < 0 means error
 ssize_t spiFlash::write (const size_t bytes, const char* data) {
-    return ::write(fd, data, bytes);
+    #ifdef NOBOARD_TEST
+        return ::write(fd, data, bytes);
+    #else
+        return fd.write(data, bytes);
+    #endif
 }
 
 ssize_t spiFlash::kwrite (const size_t bytes, const char* data) {
-    return ::write(kfd, data, bytes);
+    #ifdef NOBOARD_TEST
+        return ::write(kfd, data, bytes);
+    #else
+        return kfd.write(data, bytes);
+    #endif
 }
 
 char spiFlash::flush (void) {
@@ -153,6 +179,19 @@ char spiFlash::kflush (void) {
     k_buffer_offset = 0;
     return err;
 }
+
+//TODO: implement error tracking
+ssize_t spiFlash::tick (void) {
+    if(queuedos.empty()) return;
+
+    bool isMandatory = std::get<0>(queuedos.top()) == spiFlash::P_MANDATORY;
+    ssize_t numBytes = this->buffer(std::get<1>(queuedos.top()), std::get<2>(queuedos.top()));
+    queuedos.pop()
+
+    for(; std::get<0>(queuedos.top()) == spiFlash::P_MANDATORY; queuedos.pop()) numBytes += this->buffer(std::get<1>(queuedos.top()), std::get<2>(queuedos.top()));
+
+    if(isMandatory) this->flush();
+} 
 
 bool spiFlash::cmp_io_priority:: operator()(const std::tuple<char, size_t, char*>& l, const std::tuple<char, size_t, char*>& r) const {
         return std::get<0>(l) > std::get<0>(r);
