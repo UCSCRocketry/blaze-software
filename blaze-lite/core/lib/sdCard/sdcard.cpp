@@ -22,20 +22,19 @@ void sdCard::startUp() {
     //sd card init
     //serial begin should be called in the initialize state from state machine
     Serial.println("Initializing SD card...");
-    
-    // Explicitly initialize SPI
-    SPI.begin();
+    SPI.begin(); //this would be started in state machine, this is just for testing
     pinMode(this->CS_PIN, OUTPUT);
     digitalWrite(this->CS_PIN, HIGH);
     delay(100); // Allow SD card to power up
     
     if (!SD.begin(this->CS_PIN)) {
-        Serial.println("Card failed, or not present");
+        Serial.println("SD card failed to connect. Reason: failed to connect to SD breakout board, check CS pin");
         return;
     }
     Serial.println("SD Card initialized.");
 
     //open file
+    //TODO: change generic file names later
     dataFile = SD.open("Data.txt", FILE_WRITE);
     if (!dataFile) {
         Serial.println("Error opening Data.txt");
