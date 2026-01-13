@@ -20,8 +20,17 @@
 //TODO: Documentation, Order methods in aphabetical
 class spiFlash {
  public:
+
+    static constexpr const char
+        P_MANDATORY   = 0, //just force writes this at next tick
+        P_URGENT      = 1,
+        P_IMPORTANT   = 2,
+        P_STD         = 3,
+        P_UNIMPORTANT = 4,
+        P_OPTIONAL    = 5
+    ;
     //Constructor:
-    spiFlash (const char cs_pin, const size_t buffer_size, const size_t k_buffer_size) ;
+    spiFlash (const uint8_t cs_pin, const size_t buffer_size, const size_t k_buffer_size) ;
 
     //destructor:
     ~spiFlash() ;
@@ -30,10 +39,10 @@ class spiFlash {
     void startUp();
 
     //Get Methods:
-    char getCS_PIN();
+    uint8_t getCS_PIN();
 
     //Set Methods:
-    void setCS_PIN(char pin);
+    void setCS_PIN(uint8_t pin);
 
     //functionality methods:
     ssize_t read(const size_t offset, const size_t bytes, char* buffer);
@@ -59,20 +68,11 @@ class spiFlash {
         bool operator()(const std::tuple<char, size_t, char*>& l, const std::tuple<char, size_t, char*>& r) const ;
     };
 
-    static constexpr const char
-        P_MANDATORY   = 0, //just force writes this at next tick
-        P_URGENT      = 1,
-        P_IMPORTANT   = 2,
-        P_STD         = 3,
-        P_UNIMPORTANT = 4,
-        P_OPTIONAL    = 5
-    ;
-
     const size_t   buffer_size;
     const size_t k_buffer_size;
 
  private:
-    char CS_PIN; 
+    uint8_t CS_PIN; 
     
     std::priority_queue<
     //                         priority size    data
@@ -86,8 +86,10 @@ class spiFlash {
 
     char* kbuff;
     size_t k_buffer_offset;
-
-    int fd, kfd;
+    
+    #ifdef NOBOARD_TEST
+        int fd, kfd;
+    #endif
 };
 
 #endif
