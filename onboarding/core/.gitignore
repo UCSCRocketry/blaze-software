@@ -1,3 +1,5 @@
 # ignore this file
 .gitignore
-
+.pio
+.vscode
+.DS_Store
