@@ -7,8 +7,10 @@
 #include <time.h>
 #include <chrono>
 #include "accelerationState.h"
-// #include "telemetry_logger.h"
-// extern TelemetryLogger telemetryLogger;
+#include <vector>
+#include "BaroBulk.h" 
+//#include "telemetry_logger.h"
+//extern TelemetryLogger telemetryLogger;
 
 using namespace std;
 
@@ -99,6 +101,7 @@ void setup()
     Serial.print(baroObject.getPressure());
     Serial.print("\t");
     Serial.println(baroObject.getPressurePascal());
+    BaroBulk_setup();
 
     /* Next step here: Start a timer to log time intervals (since launch or at least
      * when the barometer kickstarts)
@@ -119,5 +122,5 @@ void loop()
     Serial.print(baroObject.getAltitude(), 2);
     Serial.println();
     accelerationStateChangeUpdate();
+    BaroBulk_update();
 }
-
