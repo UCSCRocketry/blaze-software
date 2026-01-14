@@ -7,8 +7,8 @@
 #include <time.h>
 #include <chrono>
 #include "accelerationState.h"
-#include "telemetry_logger.h"
-extern TelemetryLogger telemetryLogger;
+// #include "telemetry_logger.h"
+// extern TelemetryLogger telemetryLogger;
 
 using namespace std;
 
@@ -23,14 +23,6 @@ MS5611 baroObject(0x77);
 
 statistic::Statistic<float, u_int32_t, true> stats(baroObject.read());
 
-/**
- * Approximates inst. acceleration by calculating 2nd derivative
- * using the 3-point central difference.
- * Later implementation will be with Kalman Filter.
- * @param altitudes List of altitudes at t-h, t, t+h (fixed size of 3)
- * @param dt Time difference in seconds
- * @return Acceleration in m/s²
- */
 float calculateAcceleration(vector<float> altitudes, float dt) {
     float h1 = altitudes[0];
     float h2 = altitudes[1];
@@ -39,19 +31,6 @@ float calculateAcceleration(vector<float> altitudes, float dt) {
 }
 
 void accelerationStateChangeUpdate(){
-    /** 
-     * New Idea: Collect 3 altitude readings (over 0.1s intervals)
-     * and use 2nd derivative from the graph to estimate the acceleration.
-     * For Rockets, note: Fnet = (dv/dt)*m + v*(dm/dt)
-     *  - This means we get an acceleration reading every ~0.3s
-     * Kickstart a running average. Using the z-score, determine if a 
-     * new acceleration reading is an outlier. 
-     *  - If it is, reset the running average and "notify" that there's been
-     * a significant shift in acceleration (for now using Serial.print(),
-     * but implement a callback function at a later stage)
-     *  - If it isn't, continue updating the running acceleration average.
-     * 
-    */
    int sampleSize = 3;
     vector<float> altitudes(sampleSize);
     for (int i = 0; i < sampleSize; i++) {
