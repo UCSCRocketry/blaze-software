@@ -145,5 +145,3 @@ void loop()
     accelerationStateChangeUpdate();
     BaroBulk_update();
 }
-
-
