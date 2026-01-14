@@ -25,10 +25,24 @@ uint32_t Baro::getDeviceID()
 	return baroObject.getDeviceID();
 }
 
+uint16_t Baro::getProm(uint8_t index)
+{
+	return baroObject.getProm(index);
+}
+
+uint16_t Baro::getCRC()
+{
+	return baroObject.getCRC();
+}
+
 void Baro::setOverSamplingRate(uint8_t osr) {
 	if (osr < (uint8_t)OSR_ULTRA_LOW) osr = (uint8_t)OSR_ULTRA_LOW;
 	if (osr > (uint8_t)OSR_ULTRA_HIGH) osr = (uint8_t)OSR_ULTRA_HIGH;
 	baroObject.setOversampling(static_cast<osr_t>(osr));
+}
+
+void Baro::setPressureOffset(float offset) {
+    baroObject.setPressureOffset(offset);
 }
 
 float Baro::getSeaLevelPressure() {
@@ -40,16 +54,17 @@ void Baro::setSeaLevelPressure(float pressure) {
 }
 
 float Baro::getTemperature() {
-	baroObject.read();
 	return baroObject.getTemperature();
 }
 
 float Baro::getPressure() {
-	baroObject.read();
 	return baroObject.getPressure();
 }
 
+float Baro::getPressurePascal() {
+    return baroObject.getPressurePascal();
+}
+
 float Baro::getBaroAltitude(float seaLevelPressure) {
-	baroObject.read();
 	return baroObject.getAltitude(seaLevelPressure);
 }
