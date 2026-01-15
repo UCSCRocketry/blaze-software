@@ -59,5 +59,10 @@ private:
 
     void writeUInt(uint32_t val, uint8_t* buf, size_t& offset, int nBytes);
     uint32_t readUInt(const uint8_t* buf, size_t& offset, int nBytes);
+    void writeSequenceId(uint32_t seq, uint8_t* buf, size_t& offset);
+    bool readSequenceId(const uint8_t* buf, size_t& offset, uint32_t& outSeq);
     uint16_t computeCRC(const uint8_t* data, size_t len);
+    bool checkCRC(const uint8_t* data, size_t len, uint16_t expectedCrc);
 };
+
+#endif // DATA_PACKET_H
