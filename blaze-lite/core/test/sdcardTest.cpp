@@ -1,4 +1,4 @@
-#include "../lib/sdCard/sdCard.h"
+#include "sdCard.h"
 
 #include <string.h>
 
