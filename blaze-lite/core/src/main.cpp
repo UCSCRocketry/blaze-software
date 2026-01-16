@@ -55,7 +55,7 @@ KX134Accelerometer accelerometer;
 Radio radio(RADIO_CS_PIN, RADIO_INT_PIN, RADIO_RST_PIN);
 
 // Storage
-sdCard sdCard(SD_CS_PIN);
+sdCard card(SD_CS_PIN);
 
 // Data structures
 SensorData sensorData;
@@ -144,7 +144,7 @@ void setup() {
     
     // Initialize SD Card
     Serial.println("Initializing SD card...");
-    sdCard.startUp();
+    card.startUp();
     
     // Initialize State Machine
     stateMachine.init();
@@ -409,7 +409,7 @@ void writeLogEntry() {
     );
     
     // Write to SD card
-    ssize_t written = sdCard.writeData(strlen(logBuffer), logBuffer);
+    ssize_t written = card.writeData(strlen(logBuffer), logBuffer);
     if (written < 0) {
         Serial.println("SD write failed");
         char logMsg[128];
@@ -432,7 +432,7 @@ void writeSystemLog(const char* message) {
     }
     
     // Write to log file using writeLog method
-    ssize_t written = sdCard.writeLog(message, strlen(message));
+    ssize_t written = card.writeLog(message, strlen(message));
     if (written < 0) {
         // If log write fails, at least try to print to Serial
         Serial.print("Log write failed: ");
