@@ -1,37 +1,51 @@
 #include <Arduino.h>
 #include <iostream>
 #include <cstring>
-#include "RFD900x.h"
+#include <SPI.h>
+#include "Radio.h"
 
-const long baudrate = 115200;
-RFD900x rfd(Serial1);
+#define RF69_FREQ 433.0
+#define RFM69_CS    PB6
+#define RFM69_INT   PB4
+#define RFM69_RST   PB7
+
+Radio rf69(RFM69_CS, RFM69_INT, RFM69_RST);
 
 void setup()
 {
-    Serial.begin(baudrate);
+
+    Serial.begin(115200);
     while (!Serial) {
         delay(10);
     }
-    
+
     Serial.println("This is on the BlackPill board");
     delay(500);
-    
-    rfd.init(57600);
-    Serial.println("RFD900x initialized");
 
-    //Always exit AT mode on startup in case it's on AT mode, otherwise, there's no way to tell it to get out of AT mode.
-    Serial1.println("ATO\r");
+    if (!rf69.init(RF69_FREQ)) {
+        while (1);
+    }
+    Serial.println("RFM69 radio init OK!");
+
+    //rf69.setCallSign("KO6LRX");
 }
 
 void loop()
 {
-    delay(2000);
+    // Define the message to send
+    const char *message = "Hello, World Meow :3";  // Send the message
+    Serial.print("Sending: ");
+    Serial.println(message);  rf69.send((uint8_t *)message, strlen(message));  // Transmit the message  // Wait until the message has been fully transmitted
+    Serial.println("Message sent!");  // Wait a bit before sending the next message
 
     char resp[32] = {0};
-    rfd.recv((uint8_t*)resp, sizeof(resp)-1);
-    rfd.handleATReceiving(resp);
+    size_t r = rf69.recv((uint8_t*)resp, sizeof(resp)-1, 1000);
+    String s = String(resp);
+    Serial.println("Reply: " + s);
 
-    Serial.println("Sending Hello from blackpill");
-    const char* cmd = "Hello From Blackpill\n\r";
-    rfd.send((const uint8_t*)cmd, strlen(cmd));
+    delay(5000);
+
+    // 猫 :3 - Rachelle
+    // ニャン - Oscar
+    // no meow - Alejandro
 }
