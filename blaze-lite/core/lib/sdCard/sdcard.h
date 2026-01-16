@@ -13,7 +13,7 @@ class sdCard {
         //setup function
         void startUp();
         //Get Methods
-        char getCS_PIN();
+        uint8_t getCS_PIN();
         //Set Methods
         void setCS_PIN(char pin);
         //data read/write methods
