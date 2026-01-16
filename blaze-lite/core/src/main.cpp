@@ -12,7 +12,6 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <Wire.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -34,15 +33,15 @@
 #define KX134_CS_PIN PB14
 
 // Radio (RF69 - SPI)
-#define RADIO_CS_PIN PA4
-#define RADIO_INT_PIN PA3
-#define RADIO_RST_PIN PA2
+#define RADIO_CS_PIN PB7
+#define RADIO_INT_PIN PB4
+#define RADIO_RST_PIN PB6
 
 // SD Card (SPI)
-#define SD_CS_PIN PA8
+#define SD_CS_PIN PB15
 
 // SPI Flash (W25Q128 - placeholder, adjust pin as needed)
-#define SPI_FLASH_CS_PIN PA15
+#define SPI_FLASH_CS_PIN PB8
 
 // ============================================================================
 // Global Objects
@@ -96,7 +95,6 @@ void writeSystemLog(const char* message);
 // ============================================================================
 
 void setup() {
-    Wire.begin();
     // Initialize Serial
     Serial.begin(9600);
     while (!Serial && millis() < 5000) {
@@ -106,7 +104,7 @@ void setup() {
     
     // Initialize SPI
     SPI.begin();
-    delay(100);
+    delay(10000);
     
     // Initialize Accelerometer
     Serial.println("Initializing KX134 accelerometer...");
