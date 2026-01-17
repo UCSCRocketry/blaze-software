@@ -19,7 +19,6 @@ void Radio::setCallSign(String sign) {
  * Initializes radio. Handles reset pin, frequency, and power config.
  */
 bool Radio::init(uint32_t freq) {
-  SPI.begin();
 
   pinMode(rst_pin, OUTPUT);
   digitalWrite(rst_pin, LOW);
@@ -34,12 +33,16 @@ bool Radio::init(uint32_t freq) {
 
   if(!initialized) {
     Serial.println("Failed to init radio!");
+
+    return false;
   }
 
   bool freqSet = radio.setFrequency(freq);
 
   if(!freqSet) {
     Serial.println("Failed to set frequency!");
+
+    return false;
   }
 
   radio.setTxPower(20, true);
