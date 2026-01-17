@@ -14,6 +14,7 @@
 #include <SPI.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // Hardware libraries
 #include "KX134Accelerometer.h"
@@ -73,7 +74,7 @@ DataPacket baroPacket(StartByte::NO_RESPONSE);       // Barometer
 DataPacket statusPacket(StartByte::NO_RESPONSE);    // Status checks
 
 
-static constexpr uint32_t RADIO_FREQUENCY = 433.0;  // 433 MHz
+static constexpr uint32_t RADIO_FREQUENCY = 433;  // 433 MHz
 static constexpr uint32_t SENSOR_READ_INTERVAL = 20;    // ms (50 Hz)
 static constexpr uint32_t RADIO_TX_INTERVAL = 100;      // ms (10 Hz)
 static constexpr uint32_t RADIO_RX_INTERVAL = 50;       // ms (20 Hz)
@@ -152,7 +153,9 @@ void setup() {
     
     // Initialize State Machine
     stateMachine.init();
-    Serial.println("State machine initialized - Starting in UNARMED state");
+    //change to armed for testing
+    stateMachine.setPhase(FlightPhase::ARMED);
+    Serial.println("State machine initialized - Starting in ARMED state");
     
     // Initialize Sensor Data
     initSensorData(&sensorData);
@@ -398,17 +401,35 @@ void writeLogEntry() {
         return;
     }
     
+    float accelX = sensorData.accel.valid ? sensorData.accel.x : 0.0f;
+    float accelY = sensorData.accel.valid ? sensorData.accel.y : 0.0f;
+    float accelZ = sensorData.accel.valid ? sensorData.accel.z : 0.0f;
+    float accelMag = sensorData.accel.valid ? sensorData.accel.magnitude : 0.0f;
+    float baroAlt = sensorData.baro.valid ? sensorData.baro.altitude : 0.0f;
+
+    char accelXStr[16];
+    char accelYStr[16];
+    char accelZStr[16];
+    char accelMagStr[16];
+    char baroAltStr[16];
+
+    dtostrf(accelX, 0, 3, accelXStr);
+    dtostrf(accelY, 0, 3, accelYStr);
+    dtostrf(accelZ, 0, 3, accelZStr);
+    dtostrf(accelMag, 0, 3, accelMagStr);
+    dtostrf(baroAlt, 0, 2, baroAltStr);
+
     // Format data for logging
     char logBuffer[256];
     snprintf(logBuffer, sizeof(logBuffer),
-        "%lu,%u,%.3f,%.3f,%.3f,%.3f,%.2f,%u\r\n",
+        "%lu,%u,%s,%s,%s,%s,%s,%u\r\n",
         sensorData.systemTimestamp,
         sensorData.sequenceNumber,
-        sensorData.accel.x,
-        sensorData.accel.y,
-        sensorData.accel.z,
-        sensorData.accel.magnitude,
-        sensorData.baro.altitude,
+        accelXStr,
+        accelYStr,
+        accelZStr,
+        accelMagStr,
+        baroAltStr,
         static_cast<uint8_t>(state.phase)
     );
     
