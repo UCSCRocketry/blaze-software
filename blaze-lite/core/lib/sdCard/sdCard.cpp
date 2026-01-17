@@ -23,8 +23,8 @@ void sdCard::startUp() {
     //serial begin should be called in the initialize state from state machine
     Serial.println("Initializing SD card...");
     //SPI.begin(); //this would be started in state machine, this is just for testing
-    //pinMode(this->CS_PIN, OUTPUT);
-    //digitalWrite(this->CS_PIN, HIGH);
+    pinMode(this->CS_PIN, OUTPUT);
+    digitalWrite(this->CS_PIN, HIGH);
     delay(100); // Allow SD card to power up
     
     if (!SD.begin(this->CS_PIN)) {
