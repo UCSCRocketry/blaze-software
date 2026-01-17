@@ -153,7 +153,7 @@ void setup() {
     
     // Initialize State Machine
     stateMachine.init();
-    Serial.println("State machine initialized - Starting in UNARMED state");
+    Serial.println("State machine initialized - Starting in ARMED state");
     
     // Initialize Sensor Data
     initSensorData(&sensorData);
