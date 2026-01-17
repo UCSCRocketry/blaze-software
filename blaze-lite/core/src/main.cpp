@@ -73,7 +73,7 @@ DataPacket baroPacket(StartByte::NO_RESPONSE);       // Barometer
 DataPacket statusPacket(StartByte::NO_RESPONSE);    // Status checks
 
 
-static constexpr uint32_t RADIO_FREQUENCY = 915000000;  // 915 MHz
+static constexpr uint32_t RADIO_FREQUENCY = 433.0;  // 433 MHz
 static constexpr uint32_t SENSOR_READ_INTERVAL = 20;    // ms (50 Hz)
 static constexpr uint32_t RADIO_TX_INTERVAL = 100;      // ms (10 Hz)
 static constexpr uint32_t RADIO_RX_INTERVAL = 50;       // ms (20 Hz)
@@ -143,7 +143,7 @@ void setup() {
         stateMachine.setError("Radio init failed");
     } else {
         Serial.println("Radio initialized successfully");
-        radio.setCallSign("BLAZE");
+        radio.setCallSign("KO6JIZ");
     }
     
     // Initialize SD Card
