@@ -4,7 +4,7 @@
         include the corresponding header file in your main program, DO NOT directly call this cpp file
 */
 
-#include "sdCard.h"
+#include "sdcard.h"
 
 File dataFile; // global data file object
 File logFile;  // global log file object

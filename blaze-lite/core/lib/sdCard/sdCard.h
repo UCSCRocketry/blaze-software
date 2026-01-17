@@ -20,7 +20,6 @@ class sdCard {
         ssize_t writeData(const size_t bytes, const char* data);
         ssize_t readData(const size_t bytes, char* buffer);
         //log read/write methods
-        //new comment
         ssize_t writeLog(const char* logEntry, const size_t length);
         ssize_t readLog(char* buffer, const size_t maxLength);
 

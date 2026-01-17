@@ -19,7 +19,7 @@
 #include "KX134Accelerometer.h"
 #include "Radio.h"
 #include "sdCard.h"
-#include "dataPacket.h"
+#include "dataPacket.h" //@Merrick, wat is dis? how is data packet a hardware library?
 
 // System libraries
 #include "SensorData.h"
@@ -33,7 +33,7 @@
 #define KX134_CS_PIN PB14
 
 // Radio (RF69 - SPI)
-#define RADIO_CS_PIN PB7
+#define RADIO_CS_PIN PB7 //CS and Reset are swapped on the board, will fix in next revision
 #define RADIO_INT_PIN PB4
 #define RADIO_RST_PIN PB6
 
@@ -42,6 +42,13 @@
 
 // SPI Flash (W25Q128 - placeholder, adjust pin as needed)
 #define SPI_FLASH_CS_PIN PB8
+
+// ============================================================================
+// SPI Settings
+// ============================================================================
+
+// SPI settings for KX134 Accelerometer
+SPISettings kx134Settings(1000000, MSBFIRST, SPI_MODE0);
 
 // ============================================================================
 // Global Objects
@@ -89,7 +96,6 @@ void formatStatusPayload(uint8_t* payload);
 void parseRadioCommand(const DecodedPacket& decoded);
 void writeLogEntry();
 void writeSystemLog(const char* message);
-
 // ============================================================================
 // Setup
 // ============================================================================
@@ -104,11 +110,11 @@ void setup() {
     
     // Initialize SPI
     SPI.begin();
-    delay(10000);
+    delay(5000);
     
     // Initialize Accelerometer
     Serial.println("Initializing KX134 accelerometer...");
-    SPISettings kx134Settings(1000000, MSBFIRST, SPI_MODE0);
+    //SPISettings kx134Settings(1000000, MSBFIRST, SPI_MODE0);
     pinMode(KX134_CS_PIN, OUTPUT);
     digitalWrite(KX134_CS_PIN, HIGH);
     
