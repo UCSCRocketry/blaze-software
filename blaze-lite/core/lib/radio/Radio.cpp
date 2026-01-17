@@ -19,7 +19,6 @@ void Radio::setCallSign(String sign) {
  * Initializes radio. Handles reset pin, frequency, and power config.
  */
 bool Radio::init(uint32_t freq) {
-
   pinMode(rst_pin, OUTPUT);
   digitalWrite(rst_pin, LOW);
 
