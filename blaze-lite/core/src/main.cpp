@@ -14,6 +14,7 @@
 #include <SPI.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // Hardware libraries
 #include "KX134Accelerometer.h"
@@ -400,17 +401,35 @@ void writeLogEntry() {
         return;
     }
     
+    float accelX = sensorData.accel.valid ? sensorData.accel.x : 0.0f;
+    float accelY = sensorData.accel.valid ? sensorData.accel.y : 0.0f;
+    float accelZ = sensorData.accel.valid ? sensorData.accel.z : 0.0f;
+    float accelMag = sensorData.accel.valid ? sensorData.accel.magnitude : 0.0f;
+    float baroAlt = sensorData.baro.valid ? sensorData.baro.altitude : 0.0f;
+
+    char accelXStr[16];
+    char accelYStr[16];
+    char accelZStr[16];
+    char accelMagStr[16];
+    char baroAltStr[16];
+
+    dtostrf(accelX, 0, 3, accelXStr);
+    dtostrf(accelY, 0, 3, accelYStr);
+    dtostrf(accelZ, 0, 3, accelZStr);
+    dtostrf(accelMag, 0, 3, accelMagStr);
+    dtostrf(baroAlt, 0, 2, baroAltStr);
+
     // Format data for logging
     char logBuffer[256];
     snprintf(logBuffer, sizeof(logBuffer),
-        "%lu,%u,%.3f,%.3f,%.3f,%.3f,%.2f,%u\r\n",
+        "%lu,%u,%s,%s,%s,%s,%s,%u\r\n",
         sensorData.systemTimestamp,
         sensorData.sequenceNumber,
-        sensorData.accel.x,
-        sensorData.accel.y,
-        sensorData.accel.z,
-        sensorData.accel.magnitude,
-        sensorData.baro.altitude,
+        accelXStr,
+        accelYStr,
+        accelZStr,
+        accelMagStr,
+        baroAltStr,
         static_cast<uint8_t>(state.phase)
     );
     
@@ -460,12 +479,16 @@ void formatAccelerometerPayload(uint8_t* payload) {
     if (payload == nullptr) {
         return;
     }
-    
+
+    float accelXVal = sensorData.accel.valid ? sensorData.accel.x : 0.0f;
+    float accelYVal = sensorData.accel.valid ? sensorData.accel.y : 0.0f;
+    float accelZVal = sensorData.accel.valid ? sensorData.accel.z : 0.0f;
+
     // Convert accelerometer values to integers (multiply by 1000 for precision)
     // Then format as ASCII strings with leading zeros
-    int32_t accelX = (int32_t)(sensorData.accel.x * 1000.0f);
-    int32_t accelY = (int32_t)(sensorData.accel.y * 1000.0f);
-    int32_t accelZ = (int32_t)(sensorData.accel.z * 1000.0f);
+    int32_t accelX = (int32_t)(accelXVal * 1000.0f);
+    int32_t accelY = (int32_t)(accelYVal * 1000.0f);
+    int32_t accelZ = (int32_t)(accelZVal * 1000.0f);
     
     // Format: X(5 digits) + Y(6 digits) + Z(6 digits) = 17 bytes
     // Using format: "XXXXXYYYYYYZZZZZZ"
