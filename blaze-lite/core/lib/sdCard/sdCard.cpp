@@ -4,7 +4,7 @@
         include the corresponding header file in your main program, DO NOT directly call this cpp file
 */
 
-#include "sdcard.h"
+#include "sdCard.h"
 
 File dataFile; // global data file object
 File logFile;  // global log file object
@@ -21,8 +21,6 @@ sdCard::~sdCard() {
 void sdCard::startUp() {
     //sd card init
     //serial begin should be called in the initialize state from state machine
-    Serial.println("Initializing SD card...");
-    SPI.begin(); //this would be started in state machine, this is just for testing
     pinMode(this->CS_PIN, OUTPUT);
     digitalWrite(this->CS_PIN, HIGH);
     delay(100); // Allow SD card to power up
