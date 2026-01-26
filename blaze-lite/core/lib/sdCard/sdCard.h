@@ -7,7 +7,7 @@
 class sdCard {
     public:
         //Constructors
-        sdCard(const int csPin);
+        sdCard(const uint8_t csPin);
         //Destructor
         ~sdCard(); 
         //setup function
