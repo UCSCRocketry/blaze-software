@@ -44,7 +44,7 @@ bool Radio::init(uint32_t freq) {
     return false;
   }
 
-  radio.setTxPower(20, true);
+  radio.setTxPower(30, true);
   
   return true;
 }
