@@ -5,7 +5,11 @@
 
 static constexpr uint8_t BARO_CS_PIN = PB9;
 
-Baro baro(BARO_CS_PIN);
+static int MS5611_READ_OK = 0;
+static uint8_t OSR_ULTRA_LOW = 8;
+static uint8_t pin;
+
+Baro baro(MS5611_INTERFACE_SPI, MS5611_ADDRESS_CSB_0);
 
 void setup() {
     Serial.begin(115200);
@@ -38,7 +42,6 @@ void setup() {
 
   // Valid OSR values are 8..12 (OSR_ULTRA_LOW .. OSR_ULTRA_HIGH)
   baro.setOverSamplingRate(OSR_ULTRA_LOW);
-
   Serial.println("Temp_C\tPressure_mBar\tAltitude_m");
 }
 

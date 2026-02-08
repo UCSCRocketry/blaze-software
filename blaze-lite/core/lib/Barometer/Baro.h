@@ -1,12 +1,13 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <MS5611_SPI.h>
+#include <driver_ms5611.h>
 
 class Baro {
     public:
         //constructor
-        Baro(uint8_t csPin);
+        // Baro(uint8_t csPin);
+        Baro(ms5611_interface_t interface, 	uint8_t addr_pin);
         //destructor
         ~Baro();
 
@@ -30,14 +31,22 @@ class Baro {
         void setSeaLevelPressure(float pressure);
 
         //sensor reading functions
-        float getTemperature();
-        float getPressure();
+        float getTemperature() const {
+            return temperature;
+        }
+        float getPressure() const {
+            return seaLevelPressure;
+        }
         float getPressurePascal();
         float getBaroAltitude(float seaLevelPressure);
 
 
     private:
-        MS5611_SPI baroObject;
-        uint8_t CS_PIN;
+        ms5611_handle_t baroObject;
+        ms5611_interface_t interface;
+        uint8_t CS_PIN; //changed from uint8
         float seaLevelPressure; // in mbar
+        float temperature;
+        float altitude;
+        
 };
