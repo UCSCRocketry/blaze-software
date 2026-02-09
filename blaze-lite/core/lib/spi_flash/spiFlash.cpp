@@ -51,12 +51,13 @@ spiFlash::~spiFlash () {
 
 //hardware setup function (this should be called in the main file setup loop):
 //https://github.com/adafruit/Adafruit_SPIFlash/blob/master/examples/SdFat_datalogging/SdFat_datalogging.ino
-void spiFlash::startUp() {
+bool spiFlash::startUp() {
     if (!flash_.begin()) {
         Serial.println("Error, failed to initialize flash_ chip!");
-        while (1) {
-        delay(1);
-        }
+        // while (1) {
+        // delay(1);
+        // }
+       return false;
     }
     Serial.print("Flash chip JEDEC ID: 0x");
     Serial.println(flash_.getJEDECID(), HEX);
@@ -66,9 +67,11 @@ void spiFlash::startUp() {
     if (!fatfs.begin(&flash_)) {
         Serial.println("Error, failed to mount newly formatted filesystem!");
         Serial.println("Was the flash_ chip formatted with the fatfs_format example?");
-        while (1) delay(1);
+        // while (1) delay(1);
+       return false;
     }
     Serial.println("Mounted filesystem!");
+    return true;
 }
 
 //Get Methods:
