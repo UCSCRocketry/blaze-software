@@ -17,7 +17,7 @@
 #include <fstream>
 #include <iostream>
 
-//TODO: Documentation, Order methods in aphabetical
+//TODO: Documentation
 class spiFlash {
  public:
 
@@ -33,7 +33,7 @@ class spiFlash {
     spiFlash (const uint8_t cs_pin, const size_t buffer_size, const size_t k_buffer_size) ;
 
     //destructor:
-    ~spiFlash() ;
+    ~spiFlash();
 
     //setup function:
     bool startUp();
@@ -45,15 +45,8 @@ class spiFlash {
     void setCS_PIN(uint8_t pin);
 
     //functionality methods:
-    ssize_t read(const size_t offset, const size_t bytes, char* buffer);
-
-    char queue(size_t bytes, char* data, char priority = P_UNIMPORTANT);
 
     char buffer (const size_t bytes, const char* data);
-
-    ssize_t write (const size_t bytes, const char* data);
-
-    ssize_t kwrite (const size_t bytes, const char* data);
 
     char flush (void);
 
@@ -61,7 +54,15 @@ class spiFlash {
 
     char kflush (void);
 
+    ssize_t kwrite (const size_t bytes, const char* data);
+
+    char queue (size_t bytes, char* data, char priority = P_UNIMPORTANT);
+
+    ssize_t read (const size_t offset, const size_t bytes, char* buffer);
+
     ssize_t tick (void);
+
+    ssize_t write (const size_t bytes, const char* data);
 
     //types
     struct cmp_io_priority {
