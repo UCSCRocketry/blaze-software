@@ -36,7 +36,7 @@ class spiFlash {
     ~spiFlash() ;
 
     //setup function:
-    void startUp();
+    bool startUp();
 
     //Get Methods:
     uint8_t getCS_PIN();
