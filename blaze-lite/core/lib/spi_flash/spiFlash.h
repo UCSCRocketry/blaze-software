@@ -30,7 +30,7 @@ class spiFlash {
         P_OPTIONAL    = 5
     ;
     //Constructor:
-    spiFlash (const uint8_t cs_pin, const size_t buffer_size, const size_t k_buffer_size) ;
+    spiFlash (const size_t buffer_size = 512, const size_t k_buffer_size = 512) ;
 
     //destructor:
     ~spiFlash();
@@ -40,10 +40,7 @@ class spiFlash {
 
     //Get Methods:
     uint8_t getCS_PIN();
-
-    //Set Methods:
-    void setCS_PIN(uint8_t pin);
-
+     
     //functionality methods:
 
     char buffer (const size_t bytes, const char* data);
