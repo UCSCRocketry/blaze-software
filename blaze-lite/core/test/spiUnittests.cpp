@@ -1,6 +1,7 @@
 /*
     This file contains the unit tests for the spiFlash class. 
 */
+#define NOBOARD_TEST
 #include "spiFlash.h"
 
 using std::cout, std::endl, std::cin;
