@@ -1,10 +1,8 @@
 #include "spiFlash.h"
-#include "flash_config.h"
 #include <string.h>
 
 class spliFlashTester{
 private:
-    const uint8_t CS_PIN = PB8; // got this from the spiFlash.cpp file lol
     void printResult(const char* testName, bool passed) {
 		Serial.print(testName);
 		Serial.print(": ");
@@ -12,13 +10,13 @@ private:
 	}
 
     void testStartUp(){
-        spiFlash spiFlash(CS_PIN, 256, 128);
+        spiFlash spiFlash(256, 128);
         bool ok = spiFlash.startUp();
         printResult("StartUp test: ", ok);
     }
 
     void testReadWrite(){
-        spiFlash spiFlash(CS_PIN, 256, 128);
+        spiFlash spiFlash(256, 128);
         spiFlash.startUp();
 
         const char msg = "HELLO ROCKET TEAM!!";
@@ -32,7 +30,7 @@ private:
     }
 
     void testBufferFlush() {
-        spiFlash spiFlash(CS_PIN, 256, 128);
+        spiFlash spiFlash(256, 128);
         spiFlash.startUp();
 
         const char msg[] = "BUFFERED";
@@ -47,7 +45,7 @@ private:
     }
 
     void testQueuePriority() {
-        spiFlash spiFlash(CS_PIN, 256, 128);
+        spiFlash spiFlash(256, 128);
         spiFlash.startUp();
 
         char low[]  = "LOW";
@@ -82,10 +80,5 @@ public:
 
 };
 
-spliFlashTester::spliFlashTester(/* args */)
-{
-}
-
-spliFlashTester::~spliFlashTester()
-{
-}
+spliFlashTester:: spliFlashTester() = default;
+spliFlashTester::~spliFlashTester() = default;
