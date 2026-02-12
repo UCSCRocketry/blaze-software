@@ -1,7 +1,7 @@
 #include "spiFlash.h"
 #include <string.h>
 
-class spliFlashTester{
+class SpiFlashTester{
 private:
     void printResult(const char* testName, bool passed) {
 		Serial.print(testName);
@@ -76,9 +76,18 @@ public:
         testQueuePriority();
 		Serial.println("SPI Flash Tester: done");
 	}
-    ~spliFlashTester();
+    ~SpiFlashTester();
 
 };
 
-spliFlashTester:: spliFlashTester() = default;
-spliFlashTester::~spliFlashTester() = default;
+SpiFlashTester:: SpiFlashTester() = default;
+SpiFlashTester::~SpiFlashTester() = default;
+
+void setup () {
+	auto tester = SpiFlashTester();
+	tester.run();
+}
+
+void loop () {
+	delay(100); //so we dont fry the arduino
+}
