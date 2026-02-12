@@ -30,8 +30,8 @@ File32 fd, kfd;
 //TODO: Make private methods to simplify code
 
 //Constructor:
-spiFlash::spiFlash (const uint8_t cs_pin, const size_t buffer_size, const size_t k_buffer_size) 
-    : CS_PIN(cs_pin), buffer_size(buffer_size), k_buffer_size(k_buffer_size), buffer_offset(0), k_buffer_offset(0) {
+spiFlash::spiFlash (const size_t buffer_size, const size_t k_buffer_size) 
+    : buffer_size(buffer_size), k_buffer_size(k_buffer_size), buffer_offset(0), k_buffer_offset(0) {
     obuff = new char[  buffer_size];
     kbuff = new char[k_buffer_size];
     queuedos = std::priority_queue<std::tuple<char, size_t, char*>, std::vector<std::tuple<char, size_t, char*>>, cmp_io_priority>();
@@ -41,8 +41,10 @@ spiFlash::~spiFlash () {
     kflush();
     flush();
 
-    close(fd);
-    close(kfd);
+    #ifdef NOBOARD_TEST
+        ::close(fd);
+        ::close(kfd);
+    #endif
 
     delete[] obuff;
     delete[] kbuff;
@@ -77,19 +79,19 @@ bool spiFlash::startUp() {
 //Get Methods:
 uint8_t spiFlash::getCS_PIN() { return CS_PIN; }
 
-//Set Methods:
-void spiFlash::setCS_PIN(const uint8_t pin) { CS_PIN = pin; }
+// //Set Methods:
+// void spiFlash::setCS_PIN(const uint8_t pin) { CS_PIN = pin; }
 
 //functionality methods:
 ssize_t spiFlash::read(const size_t offset, const size_t bytes, char* buffer){
-    //error handling
-    if (bytes == 0) return 0; //no bytes to read
-    if (buffer == nullptr) return -1; //null data pointer
-    if (lseek(fd, offset, SEEK_SET) == -1 ) return -2; //seek error
+    // //error handling
+    // if (bytes == 0) return 0; //no bytes to read
+    // if (buffer == nullptr) return -1; //null data pointer
+    // if (lseek(fd, offset, SEEK_SET) == -1 ) return -2; //seek error
 
-    ssize_t bytes_read = ::read(fd, buffer, bytes);
+    // ssize_t bytes_read = ::read(fd, buffer, bytes);
 
-    return bytes_read;
+    // return bytes_read;
 }
 
 char spiFlash::queue(size_t bytes, char* data, char priority) {
@@ -109,7 +111,7 @@ char spiFlash::buffer (const size_t bytes, const char* data) {
     memcpy(obuff + buffer_offset, data, temp = std::min(bytes, buffer_size - buffer_offset));
     buffer_offset += (offset += temp);
 
-    while (bytes - offset > 0) {
+    while ((bytes - offset > 0) && (err == 0)) {
         if (err = flush() < 0) return err;
         flush();
         
@@ -139,7 +141,7 @@ ssize_t spiFlash::kwrite (const size_t bytes, const char* data) {
 }
 
 char spiFlash::flush (void) {
-    ssize_t err = write (buffer_offset, obuff);
+    ssize_t err = write(buffer_offset, obuff);
     if (err < 0) return err;
     
     memset(obuff, 0, buffer_size);
