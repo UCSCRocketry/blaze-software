@@ -9,7 +9,7 @@ static int MS5611_READ_OK = 0;
 static uint8_t OSR_ULTRA_LOW = 8;
 static uint8_t pin;
 
-Baro baro(MS5611_INTERFACE_SPI, MS5611_ADDRESS_CSB_0);
+
 
 void setup() {
     Serial.begin(115200);

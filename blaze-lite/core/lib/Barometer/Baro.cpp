@@ -1,12 +1,13 @@
 #include "Baro.h"
 #include <MS5611.h>
+#include <Wire.h>
 
-Baro::Baro(uint8_t addressPin){
+Baro::Baro(uint8_t addressPin) : baro(addressPin){
 
 }
 
 int Baro::read() {
-    
+    return baro.begin();
 }
 
 bool startUp() {

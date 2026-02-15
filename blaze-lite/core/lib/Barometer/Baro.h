@@ -43,6 +43,7 @@ class Baro {
 
     private:
         uint8_t CS_PIN; //changed from uint8
+        MS5611 baro;
         float seaLevelPressure; // in mbar
         float temperature;
         float altitude;
