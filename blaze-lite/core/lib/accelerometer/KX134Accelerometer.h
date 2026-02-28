@@ -12,6 +12,9 @@
 #include <SPI.h>
 #include <SparkFun_KX13X.h>
 
+#define KX134_CS_PIN PB14
+extern SPISettings kx134Settings;
+
 /**
  * @class KX134Accelerometer
  * @brief Wrapper class for KX134 accelerometer SPI communication
@@ -29,20 +32,11 @@ public:
     ~KX134Accelerometer();
 
     /**
-     * @brief Initialize the accelerometer with default SPI settings
-     * @param csPin Chip select pin number
-     * @return true if initialization successful, false otherwise
-     */
-    bool begin(uint8_t csPin);
-
-    /**
      * @brief Initialize the accelerometer with custom SPI settings
      * @param spiPort SPI port to use
-     * @param spiSettings SPI settings (speed, bit order, mode)
-     * @param csPin Chip select pin number
      * @return true if initialization successful, false otherwise
      */
-    bool begin(SPIClass &spiPort, SPISettings spiSettings, uint8_t csPin);
+    bool begin(SPIClass &spiPort);
 
     /**
      * @brief Check if accelerometer is initialized and ready

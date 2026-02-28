@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 // Hardware libraries
 #include "KX134Accelerometer.h"
@@ -30,8 +31,6 @@
 // Pin Definitions
 // ============================================================================
 
-// KX134 Accelerometer (SPI)
-#define KX134_CS_PIN PB14
 
 // Radio (RF69 - SPI)
 #define RADIO_CS_PIN PB6 //CS and Reset are swapped on the board, will fix in next revision
@@ -48,8 +47,6 @@
 // SPI Settings
 // ============================================================================
 
-// SPI settings for KX134 Accelerometer
-SPISettings kx134Settings(1000000, MSBFIRST, SPI_MODE0);
 
 // ============================================================================
 // Global Objects
@@ -91,12 +88,12 @@ uint32_t dataSequenceNumber = 0;
 void readSensors();
 void updateStateMachine();
 void handleRadio();
-void formatAccelerometerPayload(uint8_t* payload);
-void formatBarometerPayload(uint8_t* payload);
-void formatStatusPayload(uint8_t* payload);
+bool formatAccelerometerPayload(uint8_t* payload);
+bool formatBarometerPayload(uint8_t* payload);
+bool formatStatusPayload(uint8_t* payload);
 void parseRadioCommand(const DecodedPacket& decoded);
 void writeLogEntry();
-void writeSystemLog(const char* message);
+void writeSystemLog(const char* format, ...);
 // ============================================================================
 // Setup
 // ============================================================================
@@ -115,15 +112,11 @@ void setup() {
     
     // Initialize Accelerometer
     Serial.println("Initializing KX134 accelerometer...");
-    //SPISettings kx134Settings(1000000, MSBFIRST, SPI_MODE0);
     pinMode(KX134_CS_PIN, OUTPUT);
     digitalWrite(KX134_CS_PIN, HIGH);
     
-    if (!accelerometer.begin(SPI, kx134Settings, KX134_CS_PIN)) {
-        Serial.println("ERROR: KX134 initialization failed!");
-        char errorMsg[128];
-        snprintf(errorMsg, sizeof(errorMsg), "[%lu] ERROR: KX134 initialization failed!\r\n", millis());
-        writeSystemLog(errorMsg);
+    if (!accelerometer.begin(SPI)) {
+        writeSystemLog("[%lu] ERROR: KX134 initialization failed!\r\n", millis());
         stateMachine.setError("KX134 init failed");
     } else {
         Serial.println("KX134 initialized successfully");
@@ -137,10 +130,7 @@ void setup() {
     // Initialize Radio
     Serial.println("Initializing radio...");
     if (!radio.init(RADIO_FREQUENCY)) {
-        Serial.println("ERROR: Radio initialization failed!");
-        char errorMsg[128];
-        snprintf(errorMsg, sizeof(errorMsg), "[%lu] ERROR: Radio initialization failed!\r\n", millis());
-        writeSystemLog(errorMsg);
+        writeSystemLog("[%lu] ERROR: Radio initialization failed!\r\n", millis());
         stateMachine.setError("Radio init failed");
     } else {
         Serial.println("Radio initialized successfully");
@@ -245,54 +235,31 @@ void updateStateMachine() {
         
         switch (state.phase) {
             case FlightPhase::UNARMED:
-                Serial.println("UNARMED");
-                snprintf(logMsg, sizeof(logMsg), "[%lu] STATE: UNARMED\r\n", millis());
-                writeSystemLog(logMsg);
+                writeSystemLog("[%lu] STATE: UNARMED\r\n", millis());
                 // Disable logging and radio when entering UNARMED state
                 stateMachine.setLoggingEnabled(false);
                 stateMachine.setRadioFlag(false);
                 break;
             case FlightPhase::ARMED:
-                Serial.println("ARMED");
-                snprintf(logMsg, sizeof(logMsg), "[%lu] STATE: ARMED\r\n", millis());
-                writeSystemLog(logMsg);
+                writeSystemLog("[%lu] STATE: ARMED\r\n", millis());
                 // Enable logging and radio when entering ARMED state
                 stateMachine.setLoggingEnabled(true);
                 stateMachine.setRadioFlag(true);
                 break;
             case FlightPhase::LAUNCH:
-                Serial.println("LAUNCH");
-                Serial.print("Launch time: ");
-                Serial.println(state.launchTime);
-                snprintf(logMsg, sizeof(logMsg), "[%lu] STATE: LAUNCH (time: %lu)\r\n", millis(), state.launchTime);
-                writeSystemLog(logMsg);
+                writeSystemLog("[%lu] STATE: LAUNCH (time: %lu)\r\n", millis(), state.launchTime);
                 break;
             case FlightPhase::APOGEE:
-                Serial.println("APOGEE");
-                Serial.print("Max altitude: ");
-                Serial.print(state.maxAltitude);
-                Serial.println(" m");
-                snprintf(logMsg, sizeof(logMsg), "[%lu] STATE: APOGEE (max alt: %.2f m)\r\n", millis(), state.maxAltitude);
-                writeSystemLog(logMsg);
+                writeSystemLog("[%lu] STATE: APOGEE (max alt: %.2f m)\r\n", millis(), state.maxAltitude);
                 break;
             case FlightPhase::DESCENT:
-                Serial.println("DESCENT");
-                snprintf(logMsg, sizeof(logMsg), "[%lu] STATE: DESCENT\r\n", millis());
-                writeSystemLog(logMsg);
+                writeSystemLog("[%lu] STATE: DESCENT\r\n", millis());
                 break;
             case FlightPhase::LANDED:
-                Serial.println("LANDED");
-                Serial.print("Landed time: ");
-                Serial.println(state.landedTime);
-                snprintf(logMsg, sizeof(logMsg), "[%lu] STATE: LANDED (time: %lu)\r\n", millis(), state.landedTime);
-                writeSystemLog(logMsg);
+                writeSystemLog("[%lu] STATE: LANDED (time: %lu)\r\n", millis(), state.landedTime);
                 break;
             case FlightPhase::ERROR:
-                Serial.println("ERROR");
-                Serial.print("Error: ");
-                Serial.println(state.errorMessage);
-                snprintf(logMsg, sizeof(logMsg), "[%lu] ERROR: %s\r\n", millis(), state.errorMessage);
-                writeSystemLog(logMsg);
+                writeSystemLog("[%lu] ERROR: %s\r\n", millis(), state.errorMessage);
                 break;
         }
     }
@@ -325,25 +292,15 @@ void handleRadio() {
                     DataPacket tempPacket(StartByte::NO_RESPONSE);
                     if (tempPacket.decodePacket(rxBuffer, received, decoded)) {
                         // Log received telemetry/command
-                        char logMsg[256];
-                        snprintf(logMsg, sizeof(logMsg), 
-                            "[%lu] RX: ID=%c%c, Seq=%lu, TS=%lu\r\n", 
+                        writeSystemLog("[%lu] RX: ID=%c%c, Seq=%lu, TS=%lu\r\n", 
                             millis(), decoded.idA, decoded.idB, decoded.sequenceID, decoded.timestamp);
-                        writeSystemLog(logMsg);
                         
                         parseRadioCommand(decoded);
                     } else {
-                        Serial.println("Failed to decode packet");
-                        char logMsg[128];
-                        snprintf(logMsg, sizeof(logMsg), "[%lu] ERROR: Failed to decode packet\r\n", millis());
-                        writeSystemLog(logMsg);
+                        writeSystemLog("[%lu] ERROR: Failed to decode packet\r\n", millis());
                     }
                 } else {
-                    Serial.print("Invalid packet size: ");
-                    Serial.println(received);
-                    char logMsg[128];
-                    snprintf(logMsg, sizeof(logMsg), "[%lu] ERROR: Invalid packet size: %u\r\n", millis(), received);
-                    writeSystemLog(logMsg);
+                    writeSystemLog("[%lu] ERROR: Invalid packet size: %u\r\n", millis(), received);
                 }
             }
         }
@@ -357,7 +314,10 @@ void handleRadio() {
         // Send High-G Accelerometer data (ID: "al")
         if (sensorData.accel.valid) {
             uint8_t payload[DataPacket::PAYLOAD_SIZE];
-            formatAccelerometerPayload(payload);
+            if (!formatAccelerometerPayload(payload)) {
+                writeSystemLog("[%lu] ERROR: Failed to format accelerometer payload\r\n", millis());
+                return;
+            }
             accelPacket.encodePacket(payload, 'a', 'l');
             
             uint8_t* packetBuffer = accelPacket.getBuffer();
@@ -368,7 +328,10 @@ void handleRadio() {
         // Send Barometer data (ID: "ba") if available
         if (sensorData.baro.valid) {
             uint8_t payload[DataPacket::PAYLOAD_SIZE];
-            formatBarometerPayload(payload);
+            if (!formatBarometerPayload(payload)) {
+                writeSystemLog("[%lu] ERROR: Failed to format barometer payload\r\n", millis());
+                return;
+            }
             baroPacket.encodePacket(payload, 'b', 'a');
             
             uint8_t* packetBuffer = baroPacket.getBuffer();
@@ -379,7 +342,10 @@ void handleRadio() {
         // Send Status checks (ID: "sc")
         {
             uint8_t payload[DataPacket::PAYLOAD_SIZE];
-            formatStatusPayload(payload);
+            if (!formatStatusPayload(payload)) {
+                writeSystemLog("[%lu] ERROR: Failed to format status payload\r\n", millis());
+                return;
+            }
             statusPacket.encodePacket(payload, 's', 'c');
             
             uint8_t* packetBuffer = statusPacket.getBuffer();
@@ -436,10 +402,7 @@ void writeLogEntry() {
     // Write to SD card
     ssize_t written = card.writeData(strlen(logBuffer), logBuffer);
     if (written < 0) {
-        Serial.println("SD write failed");
-        char logMsg[128];
-        snprintf(logMsg, sizeof(logMsg), "[%lu] ERROR: SD data write failed\r\n", millis());
-        writeSystemLog(logMsg);
+        writeSystemLog("[%lu] ERROR: SD data write failed\r\n", millis());
     }
     
     // TODO: Write to SPI Flash (W25Q128)
@@ -451,10 +414,16 @@ void writeLogEntry() {
  * Write system log entry to separate log file (Log.txt)
  * Used for errors, state changes, and received telemetry/commands
  */
-void writeSystemLog(const char* message) {
-    if (message == nullptr) {
+void writeSystemLog(const char* format, ...) {
+    if (format == nullptr) {
         return;
     }
+    Serial.println(format);
+    char message[256];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
     
     // Write to log file using writeLog method
     ssize_t written = card.writeLog(message, strlen(message));
@@ -475,9 +444,10 @@ void writeSystemLog(const char* message) {
  * Format: ASCII string with leading zeros, 17 bytes total
  * Example: "00000546789764783" (X=5467, Y=8976, Z=4783 with leading zeros)
  */
-void formatAccelerometerPayload(uint8_t* payload) {
+bool formatAccelerometerPayload(uint8_t* payload) {
     if (payload == nullptr) {
-        return;
+        writeSystemLog("[%lu] ERROR: Invalid packet received\r\n", millis());
+        return false;
     }
 
     float accelXVal = sensorData.accel.valid ? sensorData.accel.x : 0.0f;
@@ -500,6 +470,7 @@ void formatAccelerometerPayload(uint8_t* payload) {
     for (int i = 0; i < 17; i++) {
         payload[i] = (i < strlen(temp)) ? temp[i] : '0';
     }
+    return true;
 }
 
 /**
@@ -508,9 +479,9 @@ void formatAccelerometerPayload(uint8_t* payload) {
  * Format: ASCII string with leading zeros, 17 bytes total
  * Example: "00000000000000546" (pressure value with leading zeros)
  */
-void formatBarometerPayload(uint8_t* payload) {
+bool formatBarometerPayload(uint8_t* payload) {
     if (payload == nullptr) {
-        return;
+        return false;
     }
     
     // Convert pressure to integer (Pa, multiply by 1 for integer representation)
@@ -524,6 +495,7 @@ void formatBarometerPayload(uint8_t* payload) {
     for (int i = 0; i < 17; i++) {
         payload[i] = (i < strlen(temp)) ? temp[i] : '0';
     }
+    return true;
 }
 
 /**
@@ -531,9 +503,9 @@ void formatBarometerPayload(uint8_t* payload) {
  * Payload: flight state and system status
  * Format: ASCII string with leading zeros, 17 bytes total
  */
-void formatStatusPayload(uint8_t* payload) {
+bool formatStatusPayload(uint8_t* payload) {
     if (payload == nullptr) {
-        return;
+        return false;
     }
     
     const FlightState& state = stateMachine.getState();
@@ -551,6 +523,7 @@ void formatStatusPayload(uint8_t* payload) {
     for (int i = 0; i < 17; i++) {
         payload[i] = (i < strlen(temp)) ? temp[i] : '0';
     }
+    return true;
 }
 
 /**
@@ -562,53 +535,39 @@ void formatStatusPayload(uint8_t* payload) {
  */
 void parseRadioCommand(const DecodedPacket& decoded) {
     if (!decoded.isValid) {
-        Serial.println("Invalid packet received");
-        char logMsg[128];
-        snprintf(logMsg, sizeof(logMsg), "[%lu] ERROR: Invalid packet received\r\n", millis());
-        writeSystemLog(logMsg);
+        writeSystemLog("[%lu] ERROR: Invalid packet received\r\n", millis());
         return;
     }
     
     // Extract message ID
     char idA = decoded.idA;
     char idB = decoded.idB;
-    char logMsg[256];
     
     // Check command type based on message ID
     if (idA == 's' && idB == 's') {
         // System command (ss)
-        Serial.println("System command received");
-        snprintf(logMsg, sizeof(logMsg), "[%lu] CMD: System command (ss) received\r\n", millis());
-        writeSystemLog(logMsg);
+        writeSystemLog("[%lu] CMD: System command (ss) received\r\n", millis());
         // Payload could contain reboot command, etc.
         // For now, just acknowledge
         Serial.println("System command acknowledged");
         
     } else if (idA == 's' && idB == 'm') {
         // State machine command (sm) - ARM/DISARM
-        Serial.println("State machine command received");
-        snprintf(logMsg, sizeof(logMsg), "[%lu] CMD: State machine command (sm) received\r\n", millis());
-        writeSystemLog(logMsg);
+        writeSystemLog("[%lu] CMD: State machine command (sm) received\r\n", millis());
         
         // Parse payload for state command
         // Assuming payload[0] contains command: 0=DISARM, 1=ARM
         if (decoded.payload[0] == '1' || decoded.payload[0] == 1) {
-            Serial.println("ARM command");
-            snprintf(logMsg, sizeof(logMsg), "[%lu] CMD: ARM command executed\r\n", millis());
-            writeSystemLog(logMsg);
+            writeSystemLog("[%lu] CMD: ARM command executed\r\n", millis());
             stateMachine.setPhase(FlightPhase::ARMED);
         } else if (decoded.payload[0] == '0' || decoded.payload[0] == 0) {
-            Serial.println("DISARM command");
-            snprintf(logMsg, sizeof(logMsg), "[%lu] CMD: DISARM command executed\r\n", millis());
-            writeSystemLog(logMsg);
+            writeSystemLog("[%lu] CMD: DISARM command executed\r\n", millis());
             stateMachine.setPhase(FlightPhase::UNARMED);
         }
         
     } else if (idA == 'p' && idB == 'r') {
         // Ping request (pr) - status checks
-        Serial.println("Ping request received");
-        snprintf(logMsg, sizeof(logMsg), "[%lu] CMD: Ping request (pr) received\r\n", millis());
-        writeSystemLog(logMsg);
+        writeSystemLog("[%lu] CMD: Ping request (pr) received\r\n", millis());
         // Send a ping response packet
         uint8_t payload[DataPacket::PAYLOAD_SIZE];
         const FlightState& state = stateMachine.getState();
@@ -622,11 +581,7 @@ void parseRadioCommand(const DecodedPacket& decoded) {
         size_t packetSize = statusPacket.getLength();
         radio.send(packetBuffer, packetSize, false);
     } else {
-        Serial.print("Unknown command ID: ");
-        Serial.print(idA);
-        Serial.println(idB);
-        snprintf(logMsg, sizeof(logMsg), "[%lu] WARN: Unknown command ID: %c%c\r\n", millis(), idA, idB);
-        writeSystemLog(logMsg);
+        writeSystemLog("[%lu] WARN: Unknown command ID: %c%c\r\n", millis(), idA, idB);
     }
     
     // Log received packet info

@@ -5,25 +5,18 @@
 
 #include "KX134Accelerometer.h"
 
+// Define the SPI settings (declared as extern in header)
+SPISettings kx134Settings(1000000, MSBFIRST, SPI_MODE0);
+
 KX134Accelerometer::KX134Accelerometer() : _initialized(false) {
 }
 
 KX134Accelerometer::~KX134Accelerometer() {
 }
 
-bool KX134Accelerometer::begin(uint8_t csPin) {
-    // Initialize with default SPI settings
-    if (_kx134.begin(csPin)) {
-        _initialized = true;
-        return true;
-    }
-    _initialized = false;
-    return false;
-}
-
-bool KX134Accelerometer::begin(SPIClass &spiPort, SPISettings spiSettings, uint8_t csPin) {
-    // Initialize with custom SPI settings
-    if (_kx134.begin(spiPort, spiSettings, csPin)) {
+bool KX134Accelerometer::begin(SPIClass &spiPort) {
+    // Initialize with flight SPI settings    
+    if (_kx134.begin(spiPort, kx134Settings, KX134_CS_PIN)) {
         _initialized = true;
         return true;
     }
