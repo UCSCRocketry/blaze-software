@@ -5,10 +5,10 @@
 
 static constexpr uint8_t BARO_CS_PIN = PB9;
 
-static int MS5611_READ_OK = 0;
+#define MS5611_READ_OK 0
 static uint8_t OSR_ULTRA_LOW = 8;
 static uint8_t pin;
-
+Baro baro(BARO_CS_PIN);
 
 
 void setup() {
@@ -18,31 +18,31 @@ void setup() {
         delay(50);
     }
 
-  Serial.println();
-  Serial.println("Baro (MS5611_SPI) tester");
+    Serial.println();
+    Serial.println("Baro (MS5611_SPI) tester");
 
-  
-  const bool ok = baro.startUp();
-  delay(5000);
-  Serial.print("begin(): ");
-  Serial.println(ok ? "OK" : "FAIL");
-  Serial.print("deviceID: 0x");
-  Serial.println(baro.getDeviceID(), HEX);
-  baro.setPressureOffset(-1013);
+    
+    const bool ok = baro.startUp();
+    delay(5000);
+    Serial.print("begin(): ");
+    Serial.println(ok ? "OK" : "FAIL");
+    Serial.print("deviceID: 0x");
+    Serial.println(baro.getDeviceID(), HEX);
+    baro.setPressureOffset(-1013);
 
-    Serial.print("PROM: ");
-    for (uint8_t i = 0; i < 7; i++)
-    {
-        if (i) Serial.print(' ');
-        Serial.print("0x");
-        Serial.print(baro.getProm(i), HEX);
-    }
-    Serial.print("  CRC=0x");
-    Serial.println(baro.getCRC(), HEX);
+        Serial.print("PROM: ");
+        for (uint8_t i = 0; i < 7; i++)
+        {
+            if (i) Serial.print(' ');
+            Serial.print("0x");
+            Serial.print(baro.getProm(i), HEX);
+        }
+        Serial.print("  CRC=0x");
+        Serial.println(baro.getCRC(), HEX);
 
-  // Valid OSR values are 8..12 (OSR_ULTRA_LOW .. OSR_ULTRA_HIGH)
-  baro.setOverSamplingRate(OSR_ULTRA_LOW);
-  Serial.println("Temp_C\tPressure_mBar\tAltitude_m");
+    // Valid OSR values are 8..12 (OSR_ULTRA_LOW .. OSR_ULTRA_HIGH)
+    baro.setOverSamplingRate(OSR_ULTRA_LOW);
+    Serial.println("Temp_C\tPressure_mBar\tAltitude_m");
 }
 
 void loop() {

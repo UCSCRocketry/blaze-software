@@ -16,7 +16,7 @@ void AccelerationState::accelerationStateChangeUpdate(){
     vector<float> altitudes(sampleSize);
     for (int i = 0; i < sampleSize; i++) {
         baroObject.read();
-        altitudes.push_back(baroObject.getBaroAltitude());
+        altitudes.push_back(baroObject.getBaroAltitude(baroObject.getSeaLevelPressure()));
         delay(100); //0.1s
     }
     float accel = calculateAcceleration(altitudes, TIME_INCREMENT);
@@ -26,18 +26,18 @@ void AccelerationState::accelerationStateChangeUpdate(){
     Serial.print("Acceleration (m/s²):");
     Serial.println(accel);
 
-    stats.add(accel);
-    float z_accel = (accel - stats.average()) / stats.pop_stdev();
+    accelStats.add(accel);
+    float z_accel = (accel - accelStats.average()) / accelStats.pop_stdev();
 
     if (fabs(z_accel) >= 2.0) {
         Serial.print("Significant acceleration change 𝜟: From ");
-        Serial.print(stats.middle());
+        Serial.print(accelStats.middle());
         Serial.print("m/s² to ");
         Serial.print(accel);
         Serial.println("m/s²");
 
-        stats.clear(); // reset to baseline - don't want to do calculations based on old state
-        stats.add(accel); // new baseline
+        accelStats.clear(); // reset to baseline - don't want to do calculations based on old state
+        accelStats.add(accel); // new baseline
     }
     
 }

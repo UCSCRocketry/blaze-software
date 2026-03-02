@@ -1,5 +1,6 @@
 #include <vector>
 #include <Baro.h>
+#include <Statistic.h>
 
 using namespace std;
 
@@ -7,10 +8,10 @@ class AccelerationState
 {
 private:
     Baro baroObject;
-    Statistic accelStats;
+    statistic::Statistic<float, u_int32_t, true> accelStats;
+    float TIME_INCREMENT;
 public:
-    AccelerationState(/* args */);
-    ~AccelerationState();
+    AccelerationState(Baro baro, float timeIncrement);
     /**
      * Approximates inst. acceleration by calculating 2nd derivative
      * using the 3-point central difference.
@@ -36,10 +37,8 @@ public:
     void accelerationStateChangeUpdate();
 };
 
-AccelerationState::AccelerationState(/* args */)
-{
+AccelerationState::AccelerationState(Baro baro, float timeIncrement) 
+    : baroObject(baro), TIME_INCREMENT(timeIncrement), accelStats(baroObject.read()) {
+    // accelStats initialized with initial barometer reading
 }
 
-AccelerationState::~AccelerationState()
-{
-}

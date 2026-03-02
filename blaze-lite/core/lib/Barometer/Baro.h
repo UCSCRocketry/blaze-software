@@ -8,8 +8,6 @@ class Baro {
         //constructor
         // Baro(uint8_t csPin);
         Baro(uint8_t addr_pin);
-        //destructor
-        ~Baro();
 
         bool startUp();
 
