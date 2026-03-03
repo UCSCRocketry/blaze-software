@@ -1,1 +1,0 @@
-//Tests for acceleration state (correct outlier detection, etc.)
