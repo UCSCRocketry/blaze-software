@@ -148,7 +148,7 @@ void setup() {
     // Initialize Sensor Data
     initSensorData(&sensorData);
 
-    stateMachine.setPhase(FlightPhase::ARMED);
+    //stateMachine.setPhase(FlightPhase::ARMED);
         
     Serial.println("=== System Ready ===");
     Serial.println("Waiting for ARM command...");
@@ -284,13 +284,17 @@ void handleRadio() {
         if (radio.available()) {
             uint8_t rxBuffer[64];
             size_t received = radio.recv(rxBuffer, sizeof(rxBuffer));
-            
+            // Adjust for callsign prefix: 6 chars callsign + 1 char ':'
+            constexpr size_t CALLSIGN_PREFIX_LEN = 7;
             if (received > 0) {
+                uint8_t* actualPacket = rxBuffer + CALLSIGN_PREFIX_LEN;
+                size_t actualLength = received - CALLSIGN_PREFIX_LEN;
+
                 // Try to decode as a DataPacket
                 DecodedPacket decoded;
-                if (received == DataPacket::PACKET_SIZE) {
+                if (actualLength == DataPacket::PACKET_SIZE) {
                     DataPacket tempPacket(StartByte::NO_RESPONSE);
-                    if (tempPacket.decodePacket(rxBuffer, received, decoded)) {
+                    if (tempPacket.decodePacket(actualPacket, actualLength, decoded)) {
                         // Log received telemetry/command
                         writeSystemLog("[%lu] RX: ID=%c%c, Seq=%lu, TS=%lu\r\n", 
                             millis(), decoded.idA, decoded.idB, decoded.sequenceID, decoded.timestamp);
@@ -300,7 +304,7 @@ void handleRadio() {
                         writeSystemLog("[%lu] ERROR: Failed to decode packet\r\n", millis());
                     }
                 } else {
-                    writeSystemLog("[%lu] ERROR: Invalid packet size: %u\r\n", millis(), received);
+                    writeSystemLog("[%lu] WARN: Invalid payload size: %u bytes\r\n", millis(), (unsigned int)actualLength);
                 }
             }
         }
@@ -418,12 +422,12 @@ void writeSystemLog(const char* format, ...) {
     if (format == nullptr) {
         return;
     }
-    Serial.println(format);
     char message[256];
     va_list args;
     va_start(args, format);
     vsnprintf(message, sizeof(message), format, args);
     va_end(args);
+    Serial.println(message);
     
     // Write to log file using writeLog method
     ssize_t written = card.writeLog(message, strlen(message));
