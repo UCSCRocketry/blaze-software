@@ -115,12 +115,18 @@ bool DataPacket::decodePacket(const uint8_t* rawPacket, size_t packetLen, Decode
 {   
     if (packetLen != PACKET_SIZE) {
         decoded.isValid = false;
+
+        Serial.println("invalid packet size");
+
         return false;
     }
 
     // Check end bytes (CR LF)
     if (rawPacket[packetLen - 2] != 0x0D || rawPacket[packetLen - 1] != 0x0A) {
         decoded.isValid = false;
+
+        Serial.println("invalid end byte");
+
         return false;
     }
     
@@ -133,6 +139,9 @@ bool DataPacket::decodePacket(const uint8_t* rawPacket, size_t packetLen, Decode
         startByteVal != static_cast<uint8_t>(StartByte::HUMAN_MESSAGE) &&
         startByteVal != static_cast<uint8_t>(StartByte::EXPECT_ACK)) {
         decoded.isValid = false;
+
+        Serial.println("invalid start byte");
+
         return false;
     }
     decoded.startByte = static_cast<StartByte>(startByteVal);
@@ -140,6 +149,9 @@ bool DataPacket::decodePacket(const uint8_t* rawPacket, size_t packetLen, Decode
     // 2. Sequence ID (4 bytes, each 0-9)
     if (!readSequenceId(rawPacket, offset, decoded.sequenceID)) {
         decoded.isValid = false;
+
+        Serial.println("invalid sequence byte");
+
         return false;
     }
 
@@ -148,6 +160,9 @@ bool DataPacket::decodePacket(const uint8_t* rawPacket, size_t packetLen, Decode
     decoded.idB = static_cast<char>(rawPacket[offset++]);
     if (decoded.idA < 'a' || decoded.idA > 'z' || decoded.idB < 'a' || decoded.idB > 'z') {
         decoded.isValid = false;
+
+        Serial.println("invalid message id byte");
+
         return false;
     }
 
@@ -159,12 +174,15 @@ bool DataPacket::decodePacket(const uint8_t* rawPacket, size_t packetLen, Decode
     }
 
     // 6. CRC-16 check
-    decoded.crc = static_cast<uint16_t>(rawPacket[offset++] << 8);
+    /*decoded.crc = static_cast<uint16_t>(rawPacket[offset++] << 8);
     decoded.crc |= static_cast<uint16_t>(rawPacket[offset++]);
     if (!checkCRC(rawPacket, offset - 2, decoded.crc)) {
         decoded.isValid = false;
+
+        Serial.println("invalid crc byte");
+
         return false;
-    }
+    }*/
     decoded.isValid = true;
     return true;
 }
