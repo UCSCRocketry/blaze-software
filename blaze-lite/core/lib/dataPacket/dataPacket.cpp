@@ -144,6 +144,9 @@ bool DataPacket::decodePacket(const uint8_t* rawPacket, size_t packetLen, Decode
 
         return false;
     }
+
+    Serial.println(startByteVal);
+
     decoded.startByte = static_cast<StartByte>(startByteVal);
 
     // 2. Sequence ID (4 bytes, each 0-9)

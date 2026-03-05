@@ -9,6 +9,21 @@
 File dataFile; // global data file object
 File logFile;  // global log file object
 
+namespace {
+void makeDataFileName(char* buffer, size_t bufferSize) {
+    uint16_t fileIndex = 0;
+    do {
+        snprintf(buffer, bufferSize, "DATA%03u.txt", fileIndex++);
+    } while (SD.exists(buffer) && fileIndex < 1000);
+}
+void makeLogFileName(char* buffer, size_t bufferSize) {
+    uint16_t fileIndex = 0;
+    do {
+        snprintf(buffer, bufferSize, "LOG%03u.txt", fileIndex++);
+    } while (SD.exists(buffer) && fileIndex < 1000);
+}
+}
+
 sdCard::sdCard(const uint8_t csPin) {
     this->CS_PIN = csPin;
 }
@@ -25,7 +40,7 @@ void sdCard::startUp() {
     //SPI.begin(); //this would be started in state machine, this is just for testing
     pinMode(this->CS_PIN, OUTPUT);
     digitalWrite(this->CS_PIN, HIGH);
-    delay(100); // Allow SD card to power up
+    delay(2000); // Allow SD card to power up
     
     if (!SD.begin(this->CS_PIN)) {
         Serial.println("SD card failed to connect. Reason: failed to connect to SD breakout board, check CS pin");
@@ -33,15 +48,28 @@ void sdCard::startUp() {
     }
     Serial.println("SD Card initialized.");
 
-    //open file
-    //TODO: change generic file names later
-    dataFile = SD.open("Data.txt", FILE_WRITE);
+    //create data file that has a unique name with a integer, if file already excist, integer +1
+    char dataFileName[16];
+    char logFileName[16];
+
+    makeDataFileName(dataFileName, sizeof(dataFileName));
+    delay(500);
+    makeLogFileName(logFileName, sizeof(logFileName));
+    delay(500);
+
+    dataFile = SD.open(dataFileName, FILE_WRITE);
+    logFile = SD.open(logFileName, FILE_WRITE);
     if (!dataFile) {
-        Serial.println("Error opening Data.txt");
+        Serial.println("Failed to create data file on SD card");
+    } else {
+        Serial.print("Data file created: ");
+        Serial.println(dataFileName);
     }
-    logFile = SD.open("Log.txt", FILE_WRITE);
     if (!logFile) {
-        Serial.println("Error opening Log.txt");
+        Serial.println("Failed to create log file on SD card");
+    } else {
+        Serial.print("Log file created: ");
+        Serial.println(logFileName);
     }
 }
 
