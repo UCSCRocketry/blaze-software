@@ -94,6 +94,7 @@ bool formatStatusPayload(uint8_t* payload);
 void parseRadioCommand(const DecodedPacket& decoded);
 void writeLogEntry();
 void writeSystemLog(const char* format, ...);
+void printReceivedPacket(const uint8_t* buffer, size_t length, const DecodedPacket* decoded);
 // ============================================================================
 // Setup
 // ============================================================================
@@ -108,7 +109,7 @@ void setup() {
     
     // Initialize SPI
     SPI.begin();
-    delay(1000);
+    delay(2000);
     
     // Initialize Accelerometer
     Serial.println("Initializing KX134 accelerometer...");
@@ -143,12 +144,12 @@ void setup() {
     
     // Initialize State Machine
     stateMachine.init();
-    Serial.println("State machine initialized - Starting in ARMED state");
+    Serial.println("State machine initialized - Starting in UNARMED state");
     
     // Initialize Sensor Data
     initSensorData(&sensorData);
 
-    stateMachine.setPhase(FlightPhase::ARMED);
+    stateMachine.setPhase(FlightPhase::UNARMED);
         
     Serial.println("=== System Ready ===");
     Serial.println("Waiting for ARM command...");
@@ -294,13 +295,17 @@ void handleRadio() {
                         // Log received telemetry/command
                         writeSystemLog("[%lu] RX: ID=%c%c, Seq=%lu, TS=%lu\r\n", 
                             millis(), decoded.idA, decoded.idB, decoded.sequenceID, decoded.timestamp);
+
+                        // Print full packet details to Serial for debugging
+                        printReceivedPacket(rxBuffer, received, &decoded);
                         
                         parseRadioCommand(decoded);
                     } else {
                         writeSystemLog("[%lu] ERROR: Failed to decode packet\r\n", millis());
                     }
                 } else {
-                    writeSystemLog("[%lu] ERROR: Invalid packet size: %u\r\n", millis(), received);
+                    // Debug-only: print raw bytes for non-DataPacket lengths
+                    printReceivedPacket(rxBuffer, received, nullptr);
                 }
             }
         }
@@ -424,6 +429,8 @@ void writeSystemLog(const char* format, ...) {
     va_start(args, format);
     vsnprintf(message, sizeof(message), format, args);
     va_end(args);
+
+    Serial.print(message);
     
     // Write to log file using writeLog method
     ssize_t written = card.writeLog(message, strlen(message));
@@ -431,6 +438,51 @@ void writeSystemLog(const char* format, ...) {
         // If log write fails, at least try to print to Serial
         Serial.print("Log write failed: ");
         Serial.println(message);
+    }
+}
+
+/**
+ * Print received packet details to Serial.
+ * Includes raw bytes and decoded fields when available.
+ */
+void printReceivedPacket(const uint8_t* buffer, size_t length, const DecodedPacket* decoded) {
+    if (buffer == nullptr || length == 0) {
+        Serial.println("RX: <empty>");
+        return;
+    }
+
+    Serial.print("RX RAW [");
+    Serial.print(length);
+    Serial.print("B]: ");
+    for (size_t i = 0; i < length; i++) {
+        if (buffer[i] < 0x10) {
+            Serial.print('0');
+        }
+        Serial.print(buffer[i], HEX);
+        if (i + 1 < length) {
+            Serial.print(' ');
+        }
+    }
+    Serial.println();
+
+    if (decoded != nullptr && decoded->isValid) {
+        Serial.print("RX DEC: ID=");
+        Serial.print(decoded->idA);
+        Serial.print(decoded->idB);
+        Serial.print(", Seq=");
+        Serial.print(decoded->sequenceID);
+        Serial.print(", TS=");
+        Serial.print(decoded->timestamp);
+        Serial.print(", Payload=\"");
+        for (size_t i = 0; i < DataPacket::PAYLOAD_SIZE; i++) {
+            char c = static_cast<char>(decoded->payload[i]);
+            if (c >= 32 && c <= 126) {
+                Serial.print(c);
+            } else {
+                Serial.print('.');
+            }
+        }
+        Serial.println("\"");
     }
 }
 
