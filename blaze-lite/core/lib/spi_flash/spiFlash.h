@@ -1,0 +1,93 @@
+#ifndef SPI_FLASH_H
+#define SPI_FLASH_H
+
+#include <Arduino.h>
+#include <SPI.h>
+#include <SdFat.h>
+
+#include <Adafruit_SPIFlash.h>
+
+#include <queue> 
+#include <tuple>
+#include <stdint.h>
+#include <unistd.h>
+#include <string.h>
+#include <cmath>
+#include <vector>
+#include <fstream>
+#include <iostream>
+
+//TODO: Documentation
+class spiFlash {
+ public:
+
+    static constexpr const char
+        P_MANDATORY   = 0, //just force writes this at next tick
+        P_URGENT      = 1,
+        P_IMPORTANT   = 2,
+        P_STD         = 3,
+        P_UNIMPORTANT = 4,
+        P_OPTIONAL    = 5
+    ;
+    //Constructor:
+    spiFlash (const size_t buffer_size = 512, const size_t k_buffer_size = 512) ;
+
+    //destructor:
+    ~spiFlash();
+
+    //setup function:
+    bool startUp();
+
+    //Get Methods:
+    uint8_t getCS_PIN();
+     
+    //functionality methods:
+
+    char buffer (const size_t bytes, const char* data);
+
+    char flush (void);
+
+    ssize_t kLog (const size_t bytes, const char* data);
+
+    char kflush (void);
+
+    ssize_t kwrite (const size_t bytes, const char* data);
+
+    char queue (size_t bytes, char* data, char priority = P_UNIMPORTANT);
+
+    ssize_t read (const size_t offset, const size_t bytes, char* buffer);
+
+    ssize_t tick (void);
+
+    ssize_t write (const size_t bytes, const char* data);
+
+    //types
+    struct cmp_io_priority {
+        bool operator()(const std::tuple<char, size_t, char*>& l, const std::tuple<char, size_t, char*>& r) const ;
+    };
+
+    const size_t   buffer_size;
+    const size_t k_buffer_size;
+
+ private:
+    uint8_t CS_PIN; 
+    
+    std::priority_queue<
+    //                         priority size    data
+                    std::tuple<char, size_t, char*>,
+        std::vector<std::tuple<char, size_t, char*>>,
+        cmp_io_priority
+    > queuedos;
+
+    char* obuff;
+    size_t buffer_offset;
+
+    char* kbuff;
+    size_t k_buffer_offset;
+    
+    #ifdef NOBOARD_TEST
+        int fd, kfd;
+    #endif
+};
+
+#endif
