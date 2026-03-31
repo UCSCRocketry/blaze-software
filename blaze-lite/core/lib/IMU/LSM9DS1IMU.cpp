@@ -7,8 +7,8 @@
 
 #include "LSM9DS1IMU.h"
 
-LSM9DS1IMU::LSM9DS1IMU(SPIClass &spiPort, uint8_t accelGyroCsPin, uint8_t magCsPin)
-    : _lsm9ds1(accelGyroCsPin, magCsPin, &spiPort),
+LSM9DS1IMU::LSM9DS1IMU(uint8_t accelGyroCsPin, uint8_t magCsPin)
+    : _lsm9ds1(accelGyroCsPin, magCsPin),
       _hasSample(false),
       _isReady(false) {}
 

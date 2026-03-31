@@ -16,7 +16,7 @@
 
 class LSM9DS1IMU {
 public:
-    LSM9DS1IMU(SPIClass &spiPort, uint8_t accelGyroCsPin, uint8_t magCsPin);
+    LSM9DS1IMU(uint8_t accelGyroCsPin, uint8_t magCsPin);
     ~LSM9DS1IMU();
 
     void setUp();
