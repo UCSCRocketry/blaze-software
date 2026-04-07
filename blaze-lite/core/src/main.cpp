@@ -21,7 +21,7 @@
 #include "KX134Accelerometer.h"
 #include "Radio.h"
 #include "sdCard.h"
-#include "dataPacket.h" //@Merrick, wat is dis? how is data packet a hardware library?
+#include "dataPacket.h"
 
 // System libraries
 #include "SensorData.h"
@@ -33,9 +33,9 @@
 
 
 // Radio (RF69 - SPI)
-#define RADIO_CS_PIN PB6 //CS and Reset are swapped on the board, will fix in next revision
-#define RADIO_INT_PIN PB4
-#define RADIO_RST_PIN PB7
+#define RADIO_CS_PIN PA4 //CS and Reset are swapped on the board, will fix in next revision
+#define RADIO_INT_PIN PA3
+#define RADIO_RST_PIN PB10
 
 // SD Card (SPI)
 #define SD_CS_PIN PB15
@@ -46,6 +46,10 @@
 // ============================================================================
 // SPI Settings
 // ============================================================================
+
+#define SPI_SCK_PIN  PA5
+#define SPI_MISO_PIN PA6
+#define SPI_MOSI_PIN PA7
 
 
 // ============================================================================
@@ -106,16 +110,20 @@ void setup() {
         delay(50);
     }
     Serial.println("\n=== Blaze Avionics System ===");
-    
-    // Initialize SPI
+
+    Serial.println("Debug: Setting SPI pins...");
+    // Initialize SPI on explicit SPI1 pins
+    SPI.setSCLK(SPI_SCK_PIN);
+    SPI.setMISO(SPI_MISO_PIN);
+    SPI.setMOSI(SPI_MOSI_PIN);
+
+    Serial.println("Debug: Initializing SPI bus...");
+
     SPI.begin();
     delay(2000);
     
     // Initialize Accelerometer
     Serial.println("Initializing KX134 accelerometer...");
-    pinMode(KX134_CS_PIN, OUTPUT);
-    digitalWrite(KX134_CS_PIN, HIGH);
-    
     if (!accelerometer.begin(SPI)) {
         writeSystemLog("[%lu] ERROR: KX134 initialization failed!\r\n", millis());
         stateMachine.setError("KX134 init failed");
