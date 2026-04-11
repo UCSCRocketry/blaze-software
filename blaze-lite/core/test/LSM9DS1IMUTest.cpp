@@ -3,8 +3,12 @@
 
 #include "LSM9DS1IMU.h"
 
-#define LSM9DS1_XGCS_PIN PB12
-#define LSM9DS1_MCS_PIN PB13
+#define LSM9DS1_XGCS_PIN PA1 //accel/gyro
+#define LSM9DS1_MCS_PIN PA2 //magnetometer
+
+#define SPI_SCK_PIN  PA5
+#define SPI_MISO_PIN PA6
+#define SPI_MOSI_PIN PA7
 
 LSM9DS1IMU imu(LSM9DS1_XGCS_PIN, LSM9DS1_MCS_PIN);
 
@@ -13,14 +17,16 @@ void setup() {
     while (!Serial) {
         delay(100);
     }
+    delay(1000); // Allow time for serial monitor to connect
+
+    Serial.println("Starting SPI");
+    SPI.setSCLK(SPI_SCK_PIN);
+    SPI.setMISO(SPI_MISO_PIN);
+    SPI.setMOSI(SPI_MOSI_PIN);
 
     SPI.begin();
-
-    pinMode(LSM9DS1_XGCS_PIN, OUTPUT);
-    pinMode(LSM9DS1_MCS_PIN, OUTPUT);
-    digitalWrite(LSM9DS1_XGCS_PIN, HIGH);
-    digitalWrite(LSM9DS1_MCS_PIN, HIGH);
-
+    delay(100); // Allow time for SPI to initialize
+    Serial.println("Setting up IMU");
     imu.setUp();
 }
 
