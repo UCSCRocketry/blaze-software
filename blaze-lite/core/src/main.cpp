@@ -21,6 +21,7 @@
 #include "KX134Accelerometer.h"
 #include "Radio.h"
 #include "sdCard.h"
+#include "spiFlash.h"
 #include "dataPacket.h"
 
 // System libraries
@@ -64,6 +65,8 @@ Radio radio(RADIO_CS_PIN, RADIO_INT_PIN, RADIO_RST_PIN);
 
 // Storage
 sdCard card(SD_CS_PIN);
+spiFlash spiFlashMem;
+bool spiFlashReady = false;
 
 // Data structures
 SensorData sensorData;
@@ -149,7 +152,13 @@ void setup() {
     // Initialize SD Card
     Serial.println("Initializing SD card...");
     card.startUp();
-    
+
+    Serial.println("Initializing SPI flash...");
+    spiFlashReady = spiFlashMem.startUp();
+    if (!spiFlashReady) {
+        Serial.println("SPI flash unavailable (logging to SD only)");
+    }
+
     // Initialize State Machine
     stateMachine.init();
     Serial.println("State machine initialized - Starting in UNARMED state");
@@ -171,6 +180,9 @@ void loop() {
     updateStateMachine();       // Flight logic
     readSensors();              // All sensor polling (includes logging)
     handleRadio();              // Uplink/downlink
+    if (spiFlashReady) {
+        spiFlashMem.tick();
+    }
 }
 
 // ============================================================================
@@ -417,10 +429,12 @@ void writeLogEntry() {
     if (written < 0) {
         writeSystemLog("[%lu] ERROR: SD data write failed\r\n", millis());
     }
-    
-    // TODO: Write to SPI Flash (W25Q128)
-    // This would require a SPI flash library
-    // For now, this is a placeholder
+
+    if (spiFlashReady) {
+        if (spiFlashMem.queue(strlen(logBuffer), logBuffer, spiFlash::P_STD) < 0) {
+            Serial.println("SPI flash queue failed");
+        }
+    }
 }
 
 /**
@@ -446,6 +460,13 @@ void writeSystemLog(const char* format, ...) {
         // If log write fails, at least try to print to Serial
         Serial.print("Log write failed: ");
         Serial.println(message);
+    }
+
+    if (spiFlashReady) {
+        size_t len = strlen(message);
+        if (spiFlashMem.kLog(len, message) < 0 || spiFlashMem.kflush() != 0) {
+            Serial.println("SPI flash log write failed");
+        }
     }
 }
 
