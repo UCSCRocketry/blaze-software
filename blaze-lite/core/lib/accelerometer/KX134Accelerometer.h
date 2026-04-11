@@ -12,7 +12,7 @@
 #include <SPI.h>
 #include <SparkFun_KX13X.h>
 
-#define KX134_CS_PIN PB14
+#define KX134_CS_PIN PB2
 extern SPISettings kx134Settings;
 
 /**
