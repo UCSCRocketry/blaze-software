@@ -31,25 +31,56 @@
 // Pin Definitions
 // ============================================================================
 
+#ifndef BLAZENT_RADIO_CS_PIN
+#define BLAZENT_RADIO_CS_PIN PA4
+#endif
+
+#ifndef BLAZENT_RADIO_INT_PIN
+#define BLAZENT_RADIO_INT_PIN PA3
+#endif
+
+#ifndef BLAZENT_RADIO_RST_PIN
+#define BLAZENT_RADIO_RST_PIN PB10
+#endif
+
+#ifndef BLAZENT_SD_CS_PIN
+#define BLAZENT_SD_CS_PIN PB15
+#endif
+
+#ifndef BLAZENT_SPI_FLASH_CS_PIN
+#define BLAZENT_SPI_FLASH_CS_PIN PB8
+#endif
+
+#ifndef BLAZENT_SPI_SCK_PIN
+#define BLAZENT_SPI_SCK_PIN PA5
+#endif
+
+#ifndef BLAZENT_SPI_MISO_PIN
+#define BLAZENT_SPI_MISO_PIN PA6
+#endif
+
+#ifndef BLAZENT_SPI_MOSI_PIN
+#define BLAZENT_SPI_MOSI_PIN PA7
+#endif
 
 // Radio (RF69 - SPI)
-#define RADIO_CS_PIN PA4 //CS and Reset are swapped on the board, will fix in next revision
-#define RADIO_INT_PIN PA3
-#define RADIO_RST_PIN PB10
+#define RADIO_CS_PIN BLAZENT_RADIO_CS_PIN
+#define RADIO_INT_PIN BLAZENT_RADIO_INT_PIN
+#define RADIO_RST_PIN BLAZENT_RADIO_RST_PIN
 
 // SD Card (SPI)
-#define SD_CS_PIN PB15
+#define SD_CS_PIN BLAZENT_SD_CS_PIN
 
 // SPI Flash (W25Q128 - placeholder, adjust pin as needed)
-#define SPI_FLASH_CS_PIN PB8
+#define SPI_FLASH_CS_PIN BLAZENT_SPI_FLASH_CS_PIN
 
 // ============================================================================
 // SPI Settings
 // ============================================================================
 
-#define SPI_SCK_PIN  PA5
-#define SPI_MISO_PIN PA6
-#define SPI_MOSI_PIN PA7
+#define SPI_SCK_PIN  BLAZENT_SPI_SCK_PIN
+#define SPI_MISO_PIN BLAZENT_SPI_MISO_PIN
+#define SPI_MOSI_PIN BLAZENT_SPI_MOSI_PIN
 
 
 // ============================================================================
