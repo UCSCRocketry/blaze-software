@@ -1,11 +1,17 @@
 {
   "build": {
+    "arduino": {
+      "variant_h": "variant_BLACKPILL_F411CE.h"
+    },
     "core": "stm32",
     "cpu": "cortex-m4",
     "mcu": "stm32f411ceu6",
     "f_cpu": "100000000L",
     "product_line": "STM32F411xE",
     "variant": "STM32F4xx/F411C(C-E)(U-Y)",
+    "framework_extra_flags": {
+      "arduino": "-DCUSTOM_PERIPHERAL_PINS"
+    },
     "extra_flags": [
       "-DSTM32F411xE",
       "-DBLAZENT_SWDIO_PIN=PA13",
