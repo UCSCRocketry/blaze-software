@@ -186,7 +186,7 @@ bool spiFlash::startUp() {
     Serial.println("file closed");
 
     //unmount fs
-    fatfs.end();
+    // TODO Need to unmount fs system during fatfs.end();
 
     return true;
 }
