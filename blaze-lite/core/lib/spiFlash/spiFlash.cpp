@@ -180,6 +180,14 @@ bool spiFlash::startUp() {
     Serial.print("SPI flash log file: ");
     Serial.println(logFileName);
 
+    dataFile.close();
+    logFile.close();
+
+    Serial.println("file closed");
+
+    //unmount fs
+    fatfs.end();
+
     return true;
 }
 
