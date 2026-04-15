@@ -128,65 +128,66 @@ bool spiFlash::startUp() {
     }
     Serial.print("Flash chip JEDEC ID: 0x");
     Serial.println(flashChip.getJEDECID(), HEX);
+    
+    //TODO: Disabled for now as we dont want the spi flash to be corrupted 
+    // if (!fatfs.begin(&flashChip)) {
+    //     Serial.println("Error, failed to mount filesystem on SPI flash!");
+    //     Serial.println("Attempting to format SPI flash as FAT...");
 
-    if (!fatfs.begin(&flashChip)) {
-        Serial.println("Error, failed to mount filesystem on SPI flash!");
-        Serial.println("Attempting to format SPI flash as FAT...");
+    //     dataFile.close();
+    //     logFile.close();
 
-        dataFile.close();
-        logFile.close();
+    //     uint8_t formatWorkBuf[512];
+    //     FatFormatter formatter;
+    //     if (!formatter.format(&flashChip, formatWorkBuf, &Serial)) {
+    //         Serial.println("Error, failed to format SPI flash filesystem!");
+    //         return false;
+    //     }
 
-        uint8_t formatWorkBuf[512];
-        FatFormatter formatter;
-        if (!formatter.format(&flashChip, formatWorkBuf, &Serial)) {
-            Serial.println("Error, failed to format SPI flash filesystem!");
-            return false;
-        }
+    //     if (!fatfs.begin(&flashChip)) {
+    //         Serial.println("Error, format completed but remount failed!");
+    //         return false;
+    //     }
+    //     Serial.println("Formatted and mounted SPI flash filesystem.");
+    // } else {
+    //     Serial.println("Mounted SPI flash filesystem.");
+    // }
 
-        if (!fatfs.begin(&flashChip)) {
-            Serial.println("Error, format completed but remount failed!");
-            return false;
-        }
-        Serial.println("Formatted and mounted SPI flash filesystem.");
-    } else {
-        Serial.println("Mounted SPI flash filesystem.");
-    }
+    // char dataFileName[16];
+    // char logFileName[16];
+    // makeDataFileName(dataFileName, sizeof(dataFileName));
+    // makeLogFileName(logFileName, sizeof(logFileName));
 
-    char dataFileName[16];
-    char logFileName[16];
-    makeDataFileName(dataFileName, sizeof(dataFileName));
-    makeLogFileName(logFileName, sizeof(logFileName));
+    // dataFile.close();
+    // logFile.close();
 
-    dataFile.close();
-    logFile.close();
+    // dataFile = fatfs.open(dataFileName, FILE_WRITE);
+    // logFile = fatfs.open(logFileName, FILE_WRITE);
+    // delay(500);
 
-    dataFile = fatfs.open(dataFileName, FILE_WRITE);
-    logFile = fatfs.open(logFileName, FILE_WRITE);
-    delay(500);
+    // fatfs.ls(Serial);
 
-    fatfs.ls(Serial);
+    // if (!dataFile) {
+    //     Serial.println("Failed to open SPI flash data file");
+    //     return false;
+    // }
+    // Serial.print("SPI flash data file: ");
+    // Serial.println(dataFileName);
 
-    if (!dataFile) {
-        Serial.println("Failed to open SPI flash data file");
-        return false;
-    }
-    Serial.print("SPI flash data file: ");
-    Serial.println(dataFileName);
+    // if (!logFile) {
+    //     Serial.println("Failed to open SPI flash log file");
+    //     return false;
+    // }
+    // Serial.print("SPI flash log file: ");
+    // Serial.println(logFileName);
 
-    if (!logFile) {
-        Serial.println("Failed to open SPI flash log file");
-        return false;
-    }
-    Serial.print("SPI flash log file: ");
-    Serial.println(logFileName);
+    // dataFile.close();
+    // logFile.close();
 
-    dataFile.close();
-    logFile.close();
+    // Serial.println("file closed");
 
-    Serial.println("file closed");
-
-    //unmount fs
-    // TODO Need to unmount fs system during fatfs.end();
+    // //unmount fs
+    // // TODO Need to unmount fs system during fatfs.end();
 
     return true;
 }
