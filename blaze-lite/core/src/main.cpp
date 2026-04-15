@@ -107,6 +107,19 @@ void printReceivedPacket(const uint8_t* buffer, size_t length, const DecodedPack
 // ============================================================================
 
 void setup() {
+#if defined(ARDUINO_BLAZE_F411CE)
+    // Status LEDs: PC13 is the separate “Arduino” LED; blue channel is PA10 RGB.
+    // If blue stays off, set build flag -D BLAZE_LED_RGB_ON=LOW for common-anode RGB.
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, LED_BUILTIN_ON);
+    pinMode(LED_RGB_R, OUTPUT);
+    pinMode(LED_RGB_G, OUTPUT);
+    pinMode(LED_RGB_B, OUTPUT);
+    digitalWrite(LED_RGB_R, BLAZE_LED_RGB_OFF);
+    digitalWrite(LED_RGB_G, BLAZE_LED_RGB_OFF);
+    digitalWrite(LED_RGB_B, BLAZE_LED_RGB_ON);
+#endif
+
     // Initialize Serial
     Serial.begin(9600);
     while (!Serial && millis() < 5000) {

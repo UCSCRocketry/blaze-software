@@ -1,0 +1,33 @@
+{
+  "build": {
+    "arduino": {
+      "variant_h": "variant_BLAZE_F411CE.h"
+    },
+    "core": "stm32",
+    "cpu": "cortex-m4",
+    "extra_flags": "-DSTM32F4 -DSTM32F4xx -DSTM32F411xE",
+    "f_cpu": "100000000L",
+    "framework_extra_flags": {
+      "arduino": "-DCUSTOM_PERIPHERAL_PINS"
+    },
+    "mcu": "stm32f411ceu6",
+    "product_line": "STM32F411xE",
+    "variant": "BlazeF411CE",
+    "variants_dir": "variants"
+  },
+  "debug": {
+    "jlink_device": "STM32F411CE",
+    "openocd_target": "stm32f4x",
+    "svd_path": "STM32F411xx.svd"
+  },
+  "frameworks": ["arduino", "cmsis", "stm32cube", "libopencm3"],
+  "name": "Blaze Lite STM32F411CE (HSI clock, Blaze pins, Black Pill pinmux tables)",
+  "upload": {
+    "maximum_ram_size": 131072,
+    "maximum_size": 524288,
+    "protocol": "dfu",
+    "protocols": ["blackmagic", "dfu", "jlink", "serial", "stlink"]
+  },
+  "url": "",
+  "vendor": "Blaze"
+}
