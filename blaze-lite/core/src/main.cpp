@@ -21,6 +21,7 @@
 #include "KX134Accelerometer.h"
 #include "Radio.h"
 #include "sdCard.h"
+#include "spiFlash.h"
 #include "dataPacket.h"
 
 // System libraries
@@ -64,6 +65,8 @@ Radio radio(RADIO_CS_PIN, RADIO_INT_PIN, RADIO_RST_PIN);
 
 // Storage
 sdCard card(SD_CS_PIN);
+spiFlash spiFlashMem;
+bool spiFlashReady = false;
 
 // Data structures
 SensorData sensorData;
@@ -104,6 +107,19 @@ void printReceivedPacket(const uint8_t* buffer, size_t length, const DecodedPack
 // ============================================================================
 
 void setup() {
+#if defined(ARDUINO_BLAZE_F411CE)
+    // Status LEDs: PC13 is the separate “Arduino” LED; blue channel is PA10 RGB.
+    // If blue stays off, set build flag -D BLAZE_LED_RGB_ON=LOW for common-anode RGB.
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, LED_BUILTIN_ON);
+    pinMode(LED_RGB_R, OUTPUT);
+    pinMode(LED_RGB_G, OUTPUT);
+    pinMode(LED_RGB_B, OUTPUT);
+    digitalWrite(LED_RGB_R, BLAZE_LED_RGB_OFF);
+    digitalWrite(LED_RGB_G, BLAZE_LED_RGB_OFF);
+    digitalWrite(LED_RGB_B, BLAZE_LED_RGB_ON);
+#endif
+
     // Initialize Serial
     Serial.begin(9600);
     while (!Serial && millis() < 5000) {
@@ -149,7 +165,13 @@ void setup() {
     // Initialize SD Card
     Serial.println("Initializing SD card...");
     card.startUp();
-    
+
+    Serial.println("Initializing SPI flash...");
+    spiFlashReady = spiFlashMem.startUp();
+    if (!spiFlashReady) {
+        Serial.println("SPI flash unavailable (logging to SD only)");
+    }
+
     // Initialize State Machine
     stateMachine.init();
     Serial.println("State machine initialized - Starting in UNARMED state");
@@ -171,6 +193,9 @@ void loop() {
     updateStateMachine();       // Flight logic
     readSensors();              // All sensor polling (includes logging)
     handleRadio();              // Uplink/downlink
+    if (spiFlashReady) {
+        spiFlashMem.tick();
+    }
 }
 
 // ============================================================================
@@ -417,10 +442,12 @@ void writeLogEntry() {
     if (written < 0) {
         writeSystemLog("[%lu] ERROR: SD data write failed\r\n", millis());
     }
-    
-    // TODO: Write to SPI Flash (W25Q128)
-    // This would require a SPI flash library
-    // For now, this is a placeholder
+
+    if (spiFlashReady) {
+        if (spiFlashMem.queue(strlen(logBuffer), logBuffer, spiFlash::P_STD) < 0) {
+            Serial.println("SPI flash queue failed");
+        }
+    }
 }
 
 /**
@@ -446,6 +473,13 @@ void writeSystemLog(const char* format, ...) {
         // If log write fails, at least try to print to Serial
         Serial.print("Log write failed: ");
         Serial.println(message);
+    }
+
+    if (spiFlashReady) {
+        size_t len = strlen(message);
+        if (spiFlashMem.kLog(len, message) < 0 || spiFlashMem.kflush() != 0) {
+            Serial.println("SPI flash log write failed");
+        }
     }
 }
 

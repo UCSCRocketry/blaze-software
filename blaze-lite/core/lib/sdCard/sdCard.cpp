@@ -6,6 +6,11 @@
 
 #include "sdCard.h"
 
+#include "spiFlash.h"
+
+#include <stdio.h>
+#include <string.h>
+
 File dataFile; // global data file object
 File logFile;  // global log file object
 
@@ -21,6 +26,53 @@ void makeLogFileName(char* buffer, size_t bufferSize) {
     do {
         snprintf(buffer, bufferSize, "LOG%03u.txt", fileIndex++);
     } while (SD.exists(buffer) && fileIndex < 1000);
+}
+
+struct SdExportState {
+    const char* folder;
+    File out;
+    bool open;
+};
+
+static bool sdExportBegin(void* user, const char* filename) {
+    auto* st = static_cast<SdExportState*>(user);
+    char path[96];
+    if (st->folder != nullptr && st->folder[0] != '\0') {
+        if (snprintf(path, sizeof(path), "%s/%s", st->folder, filename) >= static_cast<int>(sizeof(path))) {
+            return false;
+        }
+    } else {
+        if (snprintf(path, sizeof(path), "%s", filename) >= static_cast<int>(sizeof(path))) {
+            return false;
+        }
+    }
+    if (st->open) {
+        st->out.close();
+        st->open = false;
+    }
+    if (SD.exists(path)) {
+        SD.remove(path);
+    }
+    st->out = SD.open(path, FILE_WRITE);
+    st->open = static_cast<bool>(st->out);
+    return st->open;
+}
+
+static bool sdExportWrite(void* user, const uint8_t* data, size_t len) {
+    auto* st = static_cast<SdExportState*>(user);
+    if (!st->open) {
+        return false;
+    }
+    return st->out.write(data, len) == len;
+}
+
+static bool sdExportEnd(void* user) {
+    auto* st = static_cast<SdExportState*>(user);
+    if (st->open) {
+        st->out.close();
+        st->open = false;
+    }
+    return true;
 }
 }
 
@@ -119,4 +171,30 @@ ssize_t sdCard::readLog(char* buffer, const size_t maxLength) {
     } else {
         return -1; // error
     }
+}
+
+bool sdCard::exportSpiFlashRootTo(spiFlash& flash, const char* destFolder) {
+    // Requires SD.begin (e.g. sdCard::startUp) already succeeded; do not call SD.begin here
+    // while dataFile/logFile may be open.
+    if (destFolder != nullptr && destFolder[0] != '\0' && !SD.exists(destFolder)) {
+        if (!SD.mkdir(destFolder)) {
+            return false;
+        }
+    }
+
+    SdExportState st;
+    st.folder = destFolder;
+    st.open = false;
+
+    SpiFlashExportCallbacks cb;
+    cb.user = &st;
+    cb.onBeginFile = sdExportBegin;
+    cb.onWrite = sdExportWrite;
+    cb.onEndFile = sdExportEnd;
+
+    bool ok = flash.exportRootFiles(&cb);
+    if (st.open) {
+        st.out.close();
+    }
+    return ok;
 }
