@@ -162,6 +162,9 @@ bool spiFlash::startUp() {
 
     dataFile = fatfs.open(dataFileName, FILE_WRITE);
     logFile = fatfs.open(logFileName, FILE_WRITE);
+    delay(500);
+
+    fatfs.ls(Serial);
 
     if (!dataFile) {
         Serial.println("Failed to open SPI flash data file");
