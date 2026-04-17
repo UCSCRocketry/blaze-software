@@ -114,6 +114,7 @@ spiFlash::~spiFlash() {
     dataFile.close();
     delete[] obuff;
     delete[] kbuff;
+    fatfs.end();
 }
 
 // https://github.com/adafruit/Adafruit_SPIFlash/blob/master/examples/SdFat_datalogging/SdFat_datalogging.ino
@@ -468,4 +469,20 @@ bool spiFlash::removeFile(const char* path) {
         return false;
     }
     return fatfs.remove(path);
+}
+
+bool spiFlash::mountfs() {
+    if (!fatfs.begin(&flashChip)) {
+        Serial.println("Error, failed to mount filesystem on SPI flash!");
+        return false;
+    }
+    return true;
+}
+
+void spiFlash::unmountfs() {
+    fatfs.end();
+}
+
+bool spiFlash::isMounted() {
+    return fatfs.isMounted();
 }

@@ -274,12 +274,17 @@ void updateStateMachine() {
                 // Disable logging and radio when entering UNARMED state
                 stateMachine.setLoggingEnabled(false);
                 stateMachine.setRadioFlag(false);
+                //if the fs is mounted, unmount it to ensure data integrity
+                if (spiFlashMem.isMounted()) {
+                    spiFlashMem.unmountfs();
+                }
                 break;
             case FlightPhase::ARMED:
                 writeSystemLog("[%lu] STATE: ARMED\r\n", millis());
                 // Enable logging and radio when entering ARMED state
                 stateMachine.setLoggingEnabled(true);
                 stateMachine.setRadioFlag(true);
+                spiFlashMem.mountfs();
                 break;
             case FlightPhase::LAUNCH:
                 writeSystemLog("[%lu] STATE: LAUNCH (time: %lu)\r\n", millis(), state.launchTime);

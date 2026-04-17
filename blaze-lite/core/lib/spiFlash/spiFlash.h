@@ -77,6 +77,10 @@ class spiFlash {
                         const std::tuple<char, std::vector<char>>& r) const;
     };
 
+    bool mountfs();
+    void unmountfs();
+    bool isMounted();
+
     const size_t buffer_size;
     const size_t k_buffer_size;
 
