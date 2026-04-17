@@ -484,5 +484,10 @@ void spiFlash::unmountfs() {
 }
 
 bool spiFlash::isMounted() {
-    return fatfs.isMounted();
+    FatFile root;
+    const bool mounted = root.openRoot(&fatfs);
+    if (mounted) {
+        root.close();
+    }
+    return mounted;
 }
