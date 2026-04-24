@@ -1,21 +1,40 @@
 /*
     * spiFlash.cpp - SPI Flash library for Blaze
+    * LittleFS version
     * To use:
         include the corresponding header file in your main program, DO NOT directly call this cpp file
 */
 #include "spiFlash.h"
 
 #include <SPI.h>
-#include <SdFat.h>
 
 #include <Adafruit_SPIFlash.h>
 #include <flash_devices.h>
 
+extern "C" {
+#include "lfs.h"
+}
+
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
+
+// Set this to 0 in platformio.ini if you do not want a mount failure to erase/reformat flash:
+#ifndef SPI_FLASH_AUTO_FORMAT_ON_MOUNT_FAIL
+#define SPI_FLASH_AUTO_FORMAT_ON_MOUNT_FAIL 1
+#endif
 
 namespace {
 
 const uint8_t kFlashCsPin = PB8;
+
+// W25Q128 / GD25Q128 style SPI NOR flash geometry.
+static constexpr lfs_size_t kLfsReadSize = 16;
+static constexpr lfs_size_t kLfsProgSize = 256;
+static constexpr lfs_size_t kLfsBlockSize = 4096;
+static constexpr lfs_size_t kLfsCacheSize = 256;
+static constexpr lfs_size_t kLfsLookaheadSize = 128;
+static constexpr int32_t kLfsBlockCycles = 500;
 
 // GD25Q128 (16 MiB): same ID pattern as GD25Q64 but capacity 0x18 — not in Adafruit's default table.
 static const SPIFlash_Device_t kGd25q128 = {
@@ -77,23 +96,142 @@ void logRawJedec(uint8_t csPin) {
 Adafruit_FlashTransport_SPI flashTransport(kFlashCsPin, SPI);
 Adafruit_SPIFlash flashChip(&flashTransport);
 
-FatVolume fatfs;
+lfs_t littlefs;
+lfs_config lfsConfig;
+lfs_file_t dataFile;
+lfs_file_t logFile;
 
-File32 dataFile;
-File32 logFile;
+bool lfsConfigured = false;
+bool fsMounted = false;
+bool dataFileOpen = false;
+bool logFileOpen = false;
 
-void makeDataFileName(char* buffer, size_t bufferSize) {
-    uint16_t fileIndex = 0;
-    do {
-        snprintf(buffer, bufferSize, "DATA%03u.txt", fileIndex++);
-    } while (fatfs.exists(buffer) && fileIndex < 1000);
+char dataFileName[16] = {0};
+char logFileName[16] = {0};
+
+int lfsReadCb(const struct lfs_config* c,
+              lfs_block_t block,
+              lfs_off_t off,
+              void* buffer,
+              lfs_size_t size) {
+    const uint32_t address = static_cast<uint32_t>(block * c->block_size + off);
+    return flashChip.readBuffer(address, static_cast<uint8_t*>(buffer), size) ? 0 : LFS_ERR_IO;
 }
 
-void makeLogFileName(char* buffer, size_t bufferSize) {
-    uint16_t fileIndex = 0;
-    do {
-        snprintf(buffer, bufferSize, "LOG%03u.txt", fileIndex++);
-    } while (fatfs.exists(buffer) && fileIndex < 1000);
+int lfsProgCb(const struct lfs_config* c,
+              lfs_block_t block,
+              lfs_off_t off,
+              const void* buffer,
+              lfs_size_t size) {
+    const uint32_t address = static_cast<uint32_t>(block * c->block_size + off);
+    return flashChip.writeBuffer(address, static_cast<const uint8_t*>(buffer), size) ? 0 : LFS_ERR_IO;
+}
+
+int lfsEraseCb(const struct lfs_config* /*c*/, lfs_block_t block) {
+    // LittleFS block size is 4096, so the LittleFS block number maps directly to a 4 KiB flash sector.
+    return flashChip.eraseSector(block) ? 0 : LFS_ERR_IO;
+}
+
+int lfsSyncCb(const struct lfs_config* /*c*/) {
+    // Adafruit_SPIFlash operations are blocking; wait here for compatibility with LittleFS sync.
+    flashChip.waitUntilReady();
+    return 0;
+}
+
+void configureLittleFs() {
+    memset(&lfsConfig, 0, sizeof(lfsConfig));
+
+    lfsConfig.read = lfsReadCb;
+    lfsConfig.prog = lfsProgCb;
+    lfsConfig.erase = lfsEraseCb;
+    lfsConfig.sync = lfsSyncCb;
+
+    lfsConfig.read_size = kLfsReadSize;
+    lfsConfig.prog_size = kLfsProgSize;
+    lfsConfig.block_size = kLfsBlockSize;
+    lfsConfig.block_count = flashChip.size() / kLfsBlockSize;
+    lfsConfig.cache_size = kLfsCacheSize;
+    lfsConfig.lookahead_size = kLfsLookaheadSize;
+    lfsConfig.block_cycles = kLfsBlockCycles;
+
+    lfsConfigured = true;
+}
+
+bool fileExists(const char* path) {
+    lfs_info info;
+    return lfs_stat(&littlefs, path, &info) == 0;
+}
+
+bool makeDataFileName(char* buffer, size_t bufferSize) {
+    for (uint16_t fileIndex = 0; fileIndex < 1000; ++fileIndex) {
+        const int n = snprintf(buffer, bufferSize, "DATA%03u.txt", fileIndex);
+        if (n < 0 || static_cast<size_t>(n) >= bufferSize) {
+            return false;
+        }
+        if (!fileExists(buffer)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool makeLogFileName(char* buffer, size_t bufferSize) {
+    for (uint16_t fileIndex = 0; fileIndex < 1000; ++fileIndex) {
+        const int n = snprintf(buffer, bufferSize, "LOG%03u.txt", fileIndex);
+        if (n < 0 || static_cast<size_t>(n) >= bufferSize) {
+            return false;
+        }
+        if (!fileExists(buffer)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void printRootFiles() {
+    lfs_dir_t dir;
+    int err = lfs_dir_open(&littlefs, &dir, "/");
+    if (err < 0) {
+        Serial.print("LittleFS ls failed, error ");
+        Serial.println(err);
+        return;
+    }
+
+    Serial.println("LittleFS root files:");
+
+    lfs_info info;
+    while ((err = lfs_dir_read(&littlefs, &dir, &info)) > 0) {
+        if (strcmp(info.name, ".") == 0 || strcmp(info.name, "..") == 0) {
+            continue;
+        }
+
+        Serial.print(info.type == LFS_TYPE_DIR ? "  <DIR>  " : "  <FILE> ");
+        Serial.print(info.name);
+        if (info.type == LFS_TYPE_REG) {
+            Serial.print("  ");
+            Serial.print(info.size);
+            Serial.print(" bytes");
+        }
+        Serial.println();
+    }
+
+    if (err < 0) {
+        Serial.print("LittleFS ls read failed, error ");
+        Serial.println(err);
+    }
+
+    lfs_dir_close(&littlefs, &dir);
+}
+
+void closeOpenFiles() {
+    if (logFileOpen) {
+        lfs_file_close(&littlefs, &logFile);
+        logFileOpen = false;
+    }
+    if (dataFileOpen) {
+        lfs_file_close(&littlefs, &dataFile);
+        dataFileOpen = false;
+    }
 }
 
 }  // namespace
@@ -108,16 +246,17 @@ spiFlash::spiFlash(const size_t buffer_size, const size_t k_buffer_size)
 }
 
 spiFlash::~spiFlash() {
-    kflush();
     flush();
-    logFile.close();
-    dataFile.close();
+    kflush();
+    closeOpenFiles();
+    if (fsMounted) {
+        lfs_unmount(&littlefs);
+        fsMounted = false;
+    }
     delete[] obuff;
     delete[] kbuff;
-    fatfs.end();
 }
 
-// https://github.com/adafruit/Adafruit_SPIFlash/blob/master/examples/SdFat_datalogging/SdFat_datalogging.ino
 bool spiFlash::startUp() {
     // Pass explicit candidates: W25Q128JV-PM/IM (EF 70 18) is omitted from Adafruit's built-in list,
     // which only includes W25Q128JV-SQ (EF 40 18).
@@ -130,65 +269,74 @@ bool spiFlash::startUp() {
     Serial.print("Flash chip JEDEC ID: 0x");
     Serial.println(flashChip.getJEDECID(), HEX);
 
-    //TODO: Disabled for now as we dont want the spi flash to be corrupted 
-    if (!fatfs.begin(&flashChip)) {
-        Serial.println("Error, failed to mount filesystem on SPI flash!");
-        Serial.println("Attempting to format SPI flash as FAT...");
+    configureLittleFs();
 
-        dataFile.close();
-        logFile.close();
+    if (!mountfs()) {
+        Serial.println("Error, failed to mount LittleFS on SPI flash!");
 
-        uint8_t formatWorkBuf[512];
-        FatFormatter formatter;
-        if (!formatter.format(&flashChip, formatWorkBuf, &Serial)) {
-            Serial.println("Error, failed to format SPI flash filesystem!");
+#if SPI_FLASH_AUTO_FORMAT_ON_MOUNT_FAIL
+        Serial.println("Attempting to format SPI flash as LittleFS...");
+
+        closeOpenFiles();
+
+        int err = lfs_format(&littlefs, &lfsConfig);
+        if (err < 0) {
+            Serial.print("Error, failed to format SPI flash LittleFS, error ");
+            Serial.println(err);
             return false;
         }
 
-        if (!fatfs.begin(&flashChip)) {
-            Serial.println("Error, format completed but remount failed!");
+        if (!mountfs()) {
+            Serial.println("Error, format completed but LittleFS remount failed!");
             return false;
         }
-        Serial.println("Formatted and mounted SPI flash filesystem.");
+        Serial.println("Formatted and mounted LittleFS filesystem.");
+#else
+        Serial.println("Auto-format disabled. Define SPI_FLASH_AUTO_FORMAT_ON_MOUNT_FAIL=1 to format.");
+        return false;
+#endif
     } else {
-        Serial.println("Mounted SPI flash filesystem.");
+        Serial.println("Mounted LittleFS filesystem.");
     }
 
-    char dataFileName[16];
-    char logFileName[16];
-    makeDataFileName(dataFileName, sizeof(dataFileName));
-    makeLogFileName(logFileName, sizeof(logFileName));
-
-    dataFile.close();
-    logFile.close();
-
-    dataFile = fatfs.open(dataFileName, FILE_WRITE);
-    logFile = fatfs.open(logFileName, FILE_WRITE);
-    delay(500);
-
-    fatfs.ls(Serial);
-
-    if (!dataFile) {
-        Serial.println("Failed to open SPI flash data file");
+    if (!makeDataFileName(dataFileName, sizeof(dataFileName))) {
+        Serial.println("Failed to allocate SPI flash data file name");
         return false;
     }
+    if (!makeLogFileName(logFileName, sizeof(logFileName))) {
+        Serial.println("Failed to allocate SPI flash log file name");
+        return false;
+    }
+
+    closeOpenFiles();
+
+    int err = lfs_file_open(&littlefs, &dataFile, dataFileName, LFS_O_RDWR | LFS_O_CREAT | LFS_O_APPEND);
+    if (err < 0) {
+        Serial.print("Failed to open SPI flash data file, error ");
+        Serial.println(err);
+        return false;
+    }
+    dataFileOpen = true;
+
+    err = lfs_file_open(&littlefs, &logFile, logFileName, LFS_O_RDWR | LFS_O_CREAT | LFS_O_APPEND);
+    if (err < 0) {
+        Serial.print("Failed to open SPI flash log file, error ");
+        Serial.println(err);
+        lfs_file_close(&littlefs, &dataFile);
+        dataFileOpen = false;
+        return false;
+    }
+    logFileOpen = true;
+
+    delay(500);
+
+    printRootFiles();
+
     Serial.print("SPI flash data file: ");
     Serial.println(dataFileName);
 
-    if (!logFile) {
-        Serial.println("Failed to open SPI flash log file");
-        return false;
-    }
     Serial.print("SPI flash log file: ");
     Serial.println(logFileName);
-
-    dataFile.close();
-    logFile.close();
-
-    Serial.println("file closed");
-    
-    fatfs.end();
-    Serial.println("FS dismounted");
 
     return true;
 }
@@ -202,13 +350,16 @@ ssize_t spiFlash::read(const size_t offset, const size_t bytes, char* buffer) {
     if (buffer == nullptr) {
         return -1;
     }
-    if (!dataFile) {
+    if (!fsMounted || !dataFileOpen) {
         return -2;
     }
-    if (!dataFile.seekSet(static_cast<uint32_t>(offset))) {
+
+    const lfs_soff_t seekResult = lfs_file_seek(&littlefs, &dataFile, static_cast<lfs_soff_t>(offset), LFS_SEEK_SET);
+    if (seekResult < 0) {
         return -3;
     }
-    int n = dataFile.read(buffer, bytes);
+
+    const lfs_ssize_t n = lfs_file_read(&littlefs, &dataFile, buffer, static_cast<lfs_size_t>(bytes));
     if (n < 0) {
         return -4;
     }
@@ -261,28 +412,36 @@ int spiFlash::buffer(const size_t bytes, const char* data) {
 }
 
 ssize_t spiFlash::write(const size_t bytes, const char* data) {
-    if (!dataFile) {
+    if (!fsMounted || !dataFileOpen) {
         return -1;
+    }
+    if (data == nullptr) {
+        return -2;
     }
     if (bytes == 0) {
         return 0;
     }
-    size_t w = dataFile.write(data, bytes);
-    if (w != bytes) {
+
+    const lfs_ssize_t w = lfs_file_write(&littlefs, &dataFile, data, static_cast<lfs_size_t>(bytes));
+    if (w < 0 || static_cast<size_t>(w) != bytes) {
         return -1;
     }
     return static_cast<ssize_t>(w);
 }
 
 ssize_t spiFlash::kwrite(const size_t bytes, const char* data) {
-    if (!logFile) {
+    if (!fsMounted || !logFileOpen) {
         return -1;
+    }
+    if (data == nullptr) {
+        return -2;
     }
     if (bytes == 0) {
         return 0;
     }
-    size_t w = logFile.write(data, bytes);
-    if (w != bytes) {
+
+    const lfs_ssize_t w = lfs_file_write(&littlefs, &logFile, data, static_cast<lfs_size_t>(bytes));
+    if (w < 0 || static_cast<size_t>(w) != bytes) {
         return -1;
     }
     return static_cast<ssize_t>(w);
@@ -296,6 +455,12 @@ int spiFlash::flush(void) {
     if (err < 0) {
         return -1;
     }
+
+    const int syncErr = lfs_file_sync(&littlefs, &dataFile);
+    if (syncErr < 0) {
+        return -2;
+    }
+
     memset(obuff, 0, buffer_size);
     buffer_offset = 0;
     return 0;
@@ -342,6 +507,12 @@ int spiFlash::kflush(void) {
     if (err < 0) {
         return -1;
     }
+
+    const int syncErr = lfs_file_sync(&littlefs, &logFile);
+    if (syncErr < 0) {
+        return -2;
+    }
+
     memset(kbuff, 0, k_buffer_size);
     k_buffer_offset = 0;
     return 0;
@@ -396,6 +567,9 @@ bool spiFlash::exportRootFiles(const SpiFlashExportCallbacks* callbacks) {
         callbacks->onEndFile == nullptr) {
         return false;
     }
+    if (!fsMounted) {
+        return false;
+    }
 
     int fe = flush();
     if (fe < 0) {
@@ -406,38 +580,41 @@ bool spiFlash::exportRootFiles(const SpiFlashExportCallbacks* callbacks) {
         return false;
     }
 
-    FatFile root;
-    if (!root.openRoot(&fatfs)) {
+    lfs_dir_t root;
+    int err = lfs_dir_open(&littlefs, &root, "/");
+    if (err < 0) {
         return false;
     }
 
-    FatFile entry;
-    while (entry.openNext(&root, O_RDONLY)) {
-        if (!entry.isFile()) {
-            entry.close();
+    lfs_info info;
+    while ((err = lfs_dir_read(&littlefs, &root, &info)) > 0) {
+        if (strcmp(info.name, ".") == 0 || strcmp(info.name, "..") == 0) {
+            continue;
+        }
+        if (info.type != LFS_TYPE_REG) {
             continue;
         }
 
-        char name[64];
-        if (entry.getName(name, sizeof(name)) == 0) {
-            entry.close();
-            continue;
+        lfs_file_t entry;
+        err = lfs_file_open(&littlefs, &entry, info.name, LFS_O_RDONLY);
+        if (err < 0) {
+            lfs_dir_close(&littlefs, &root);
+            return false;
         }
 
-        if (!callbacks->onBeginFile(callbacks->user, name)) {
-            entry.close();
-            root.close();
+        if (!callbacks->onBeginFile(callbacks->user, info.name)) {
+            lfs_file_close(&littlefs, &entry);
+            lfs_dir_close(&littlefs, &root);
             return false;
         }
 
         uint8_t buf[512];
-        int n;
         while (true) {
-            n = entry.read(buf, sizeof(buf));
+            const lfs_ssize_t n = lfs_file_read(&littlefs, &entry, buf, sizeof(buf));
             if (n < 0) {
                 callbacks->onEndFile(callbacks->user);
-                entry.close();
-                root.close();
+                lfs_file_close(&littlefs, &entry);
+                lfs_dir_close(&littlefs, &root);
                 return false;
             }
             if (n == 0) {
@@ -445,49 +622,72 @@ bool spiFlash::exportRootFiles(const SpiFlashExportCallbacks* callbacks) {
             }
             if (!callbacks->onWrite(callbacks->user, buf, static_cast<size_t>(n))) {
                 callbacks->onEndFile(callbacks->user);
-                entry.close();
-                root.close();
+                lfs_file_close(&littlefs, &entry);
+                lfs_dir_close(&littlefs, &root);
                 return false;
             }
         }
 
         if (!callbacks->onEndFile(callbacks->user)) {
-            entry.close();
-            root.close();
+            lfs_file_close(&littlefs, &entry);
+            lfs_dir_close(&littlefs, &root);
             return false;
         }
 
-        entry.close();
+        lfs_file_close(&littlefs, &entry);
     }
 
-    root.close();
-    return true;
+    lfs_dir_close(&littlefs, &root);
+    return err >= 0;
 }
 
 bool spiFlash::removeFile(const char* path) {
-    if (path == nullptr || path[0] == '\0') {
+    if (path == nullptr || path[0] == '\0' || !fsMounted) {
         return false;
     }
-    return fatfs.remove(path);
+    return lfs_remove(&littlefs, path) == 0;
 }
 
 bool spiFlash::mountfs() {
-    if (!fatfs.begin(&flashChip)) {
-        Serial.println("Error, failed to mount filesystem on SPI flash!");
+    if (fsMounted) {
+        return true;
+    }
+    if (!lfsConfigured) {
+        configureLittleFs();
+    }
+    const int err = lfs_mount(&littlefs, &lfsConfig);
+    if (err < 0) {
+        Serial.print("Error, failed to mount LittleFS on SPI flash, error ");
+        Serial.println(err);
+        fsMounted = false;
         return false;
     }
+    fsMounted = true;
     return true;
 }
 
 void spiFlash::unmountfs() {
-    fatfs.end();
+    if (!fsMounted) {
+        return;
+    }
+
+    flush();
+    kflush();
+    closeOpenFiles();
+    lfs_unmount(&littlefs);
+    fsMounted = false;
 }
 
 bool spiFlash::isMounted() {
-    FatFile root;
-    const bool mounted = root.openRoot(&fatfs);
-    if (mounted) {
-        root.close();
+    if (!fsMounted) {
+        return false;
     }
-    return mounted;
+
+    lfs_dir_t root;
+    const int err = lfs_dir_open(&littlefs, &root, "/");
+    if (err < 0) {
+        return false;
+    }
+    lfs_dir_close(&littlefs, &root);
+    return true;
 }

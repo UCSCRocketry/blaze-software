@@ -170,8 +170,9 @@ void setup() {
     spiFlashReady = spiFlashMem.startUp();
     if (!spiFlashReady) {
         Serial.println("SPI flash unavailable (logging to SD only)");
+    } else {
+        Serial.println("SPI flash initialized successfully");
     }
-    spiFlashReady = false; 
 
     // Initialize State Machine
     stateMachine.init();
