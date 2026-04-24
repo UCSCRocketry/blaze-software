@@ -172,6 +172,7 @@ void setup() {
         Serial.println("SPI flash unavailable (logging to SD only)");
     } else {
         Serial.println("SPI flash initialized successfully");
+        spiFlashMem.unmountfs();
     }
 
     // Initialize State Machine
