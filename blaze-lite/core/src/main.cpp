@@ -34,7 +34,7 @@
 
 
 // Radio (RF69 - SPI)
-#define RADIO_CS_PIN PA4 //CS and Reset are swapped on the board, will fix in next revision
+#define RADIO_CS_PIN PA4
 #define RADIO_INT_PIN PA3
 #define RADIO_RST_PIN PB10
 
@@ -118,6 +118,23 @@ void setup() {
     digitalWrite(LED_RGB_R, BLAZE_LED_RGB_OFF);
     digitalWrite(LED_RGB_G, BLAZE_LED_RGB_OFF);
     digitalWrite(LED_RGB_B, BLAZE_LED_RGB_ON);
+
+    //Write all CS pins to high
+    pinMode(RADIO_CS_PIN, OUTPUT);
+    digitalWrite(RADIO_CS_PIN, HIGH);
+    pinMode(SD_CS_PIN, OUTPUT);
+    digitalWrite(SD_CS_PIN, HIGH);
+    pinMode(SPI_FLASH_CS_PIN, OUTPUT);
+    digitalWrite(SPI_FLASH_CS_PIN, HIGH);
+    pinMode(PA0, OUTPUT);
+    digitalWrite(PA0, HIGH);
+    pinMode(PA1, OUTPUT);
+    digitalWrite(PA1, HIGH);
+    pinMode(PA2, OUTPUT);
+    digitalWrite(PA2, HIGH);
+    pinMode(PB9, OUTPUT);
+    digitalWrite(PB9, HIGH);
+
 #endif
 
     // Initialize Serial
@@ -138,7 +155,17 @@ void setup() {
     SPI.begin();
     delay(2000);
     
-    // Initialize Accelerometer
+    // Initialize Radio
+    Serial.println("Initializing radio...");
+    if (!radio.init(RADIO_FREQUENCY)) {
+        writeSystemLog("[%lu] ERROR: Radio initialization failed!\r\n", millis());
+        stateMachine.setError("Radio init failed");
+    } else {
+        Serial.println("Radio initialized successfully");
+        radio.setCallSign("KO6JIZ");
+    }
+
+    // // Initialize Accelerometer
     Serial.println("Initializing KX134 accelerometer...");
     if (!accelerometer.begin(SPI)) {
         writeSystemLog("[%lu] ERROR: KX134 initialization failed!\r\n", millis());
@@ -150,16 +177,6 @@ void setup() {
         accelerometer.enableDataEngine(true);
         accelerometer.setRange(SFE_KX134_RANGE64G);
         accelerometer.enable(true);
-    }
-    
-    // Initialize Radio
-    Serial.println("Initializing radio...");
-    if (!radio.init(RADIO_FREQUENCY)) {
-        writeSystemLog("[%lu] ERROR: Radio initialization failed!\r\n", millis());
-        stateMachine.setError("Radio init failed");
-    } else {
-        Serial.println("Radio initialized successfully");
-        radio.setCallSign("KO6JIZ");
     }
     
     // Initialize SD Card

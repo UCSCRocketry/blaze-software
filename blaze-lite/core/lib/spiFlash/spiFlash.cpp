@@ -260,6 +260,7 @@ spiFlash::~spiFlash() {
 bool spiFlash::startUp() {
     // Pass explicit candidates: W25Q128JV-PM/IM (EF 70 18) is omitted from Adafruit's built-in list,
     // which only includes W25Q128JV-SQ (EF 40 18).
+    Serial.println("Before SPI flash initialization:");
     if (!flashChip.begin(kBlazeFlashCandidates,
                          sizeof(kBlazeFlashCandidates) / sizeof(kBlazeFlashCandidates[0]))) {
         Serial.println("Error, failed to initialize flash chip!");
