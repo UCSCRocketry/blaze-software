@@ -10,7 +10,6 @@
 #include <tuple>
 #include <vector>
 
-/** Stream each root-level file on SPI flash FAT (copy-out; flash is unchanged). */
 struct SpiFlashExportCallbacks {
     void* user;
     bool (*onBeginFile)(void* user, const char* filename);
@@ -57,29 +56,30 @@ class spiFlash {
 
     ssize_t write(const size_t bytes, const char* data);
 
-    /** Read from the data file at byte offset (uses global data file handle). */
+    /** Read from the data file at byte offset. */
     ssize_t read(const size_t offset, const size_t bytes, char* buffer);
 
     /**
-     * Walk the FAT root (regular files only; no subdirectories). Flushes write buffers first.
+     * Walk the LittleFS root (regular files only; no subdirectories). Flushes write buffers first.
      * SPI flash files are not modified or deleted.
      */
     bool exportRootFiles(const SpiFlashExportCallbacks* callbacks);
 
     /**
-     * Delete a file on SPI flash by path (e.g. "DATA000.txt"). Uses FatVolume::remove.
+     * Delete a file on SPI flash by path (e.g. "DATA000.txt"). Uses lfs_remove().
      * Do not remove a path that is the same as the currently open data/log session file.
      */
     bool removeFile(const char* path);
+
+    // Filesystem lifecycle helpers for SPI flash LittleFS volume.
+    bool mountfs();
+    void unmountfs();
+    bool isMounted();
 
     struct cmp_io_priority {
         bool operator()(const std::tuple<char, std::vector<char>>& l,
                         const std::tuple<char, std::vector<char>>& r) const;
     };
-
-    bool mountfs();
-    void unmountfs();
-    bool isMounted();
 
     const size_t buffer_size;
     const size_t k_buffer_size;
