@@ -126,6 +126,8 @@ void setup() {
     digitalWrite(SD_CS_PIN, HIGH);
     pinMode(SPI_FLASH_CS_PIN, OUTPUT);
     digitalWrite(SPI_FLASH_CS_PIN, HIGH);
+    pinMode(PB2, OUTPUT); //Accelerometer CS pin
+    digitalWrite(PB2, HIGH);
     pinMode(PA0, OUTPUT);
     digitalWrite(PA0, HIGH);
     pinMode(PA1, OUTPUT);
@@ -189,6 +191,7 @@ void setup() {
         Serial.println("SPI flash unavailable (logging to SD only)");
     } else {
         Serial.println("SPI flash initialized successfully");
+        //TODO: unmounted due to testing only. 
         spiFlashMem.unmountfs();
     }
 
