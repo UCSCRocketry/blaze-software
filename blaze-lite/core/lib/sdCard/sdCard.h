@@ -4,6 +4,8 @@
 
 #include <string>
 
+class spiFlash;
+
 class sdCard {
     public:
         //Constructors
@@ -22,6 +24,13 @@ class sdCard {
         //log read/write methods
         ssize_t writeLog(const char* logEntry, const size_t length);
         ssize_t readLog(char* buffer, const size_t maxLength);
+
+        /**
+         * Copy every regular file from SPI flash FAT root into destFolder on the SD card.
+         * Creates destFolder if needed. Existing SD files with the same relative path are replaced.
+         * Does not delete or alter files on SPI flash.
+         */
+        bool exportSpiFlashRootTo(spiFlash& flash, const char* destFolder);
 
     private:
         uint8_t CS_PIN;
