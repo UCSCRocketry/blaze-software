@@ -23,6 +23,7 @@
 #include "sdCard.h"
 #include "spiFlash.h"
 #include "dataPacket.h"
+#include "LSM9DS1IMU.h"
 
 // System libraries
 #include "SensorData.h"
@@ -31,7 +32,6 @@
 // ============================================================================
 // Pin Definitions
 // ============================================================================
-
 
 // Radio (RF69 - SPI)
 #define RADIO_CS_PIN PA4
@@ -43,6 +43,13 @@
 
 // SPI Flash (W25Q128 - placeholder, adjust pin as needed)
 #define SPI_FLASH_CS_PIN PB8
+
+// Accelerometer (KX134 - SPI)
+#define LSM9DS1_XGCS_PIN PA1 //accel/gyro
+#define LSM9DS1_MCS_PIN PA2 //magnetometer
+
+//Accelerometer CS pin
+#define KX134_CS_PIN PB2
 
 // ============================================================================
 // SPI Settings
@@ -59,6 +66,7 @@
 
 // Sensors
 KX134Accelerometer accelerometer;
+LSM9DS1IMU imu(LSM9DS1_XGCS_PIN, LSM9DS1_MCS_PIN);
 
 // Communication
 Radio radio(RADIO_CS_PIN, RADIO_INT_PIN, RADIO_RST_PIN);
@@ -126,14 +134,14 @@ void setup() {
     digitalWrite(SD_CS_PIN, HIGH);
     pinMode(SPI_FLASH_CS_PIN, OUTPUT);
     digitalWrite(SPI_FLASH_CS_PIN, HIGH);
-    pinMode(PB2, OUTPUT); //Accelerometer CS pin
-    digitalWrite(PB2, HIGH);
+    pinMode(KX134_CS_PIN, OUTPUT);
+    digitalWrite(KX134_CS_PIN, HIGH);
+    pinMode(LSM9DS1_XGCS_PIN, OUTPUT);
+    digitalWrite(LSM9DS1_XGCS_PIN, HIGH);
+    pinMode(LSM9DS1_MCS_PIN, OUTPUT);
+    digitalWrite(LSM9DS1_MCS_PIN, HIGH);
     pinMode(PA0, OUTPUT);
     digitalWrite(PA0, HIGH);
-    pinMode(PA1, OUTPUT);
-    digitalWrite(PA1, HIGH);
-    pinMode(PA2, OUTPUT);
-    digitalWrite(PA2, HIGH);
     pinMode(PB9, OUTPUT);
     digitalWrite(PB9, HIGH);
 
@@ -193,6 +201,12 @@ void setup() {
         Serial.println("SPI flash initialized successfully");
         //TODO: unmounted due to testing only. 
         spiFlashMem.unmountfs();
+    }
+
+    //initialize IMU
+    if (!imu.setUp()) {
+        writeSystemLog("[%lu] ERROR: LSM9DS1 initialization failed!\r\n", millis());
+        stateMachine.setError("IMU init failed");
     }
 
     // Initialize State Machine
