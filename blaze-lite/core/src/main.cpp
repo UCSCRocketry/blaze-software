@@ -238,7 +238,7 @@ void loop() {
     }*/
 
     uint32_t start = micros();
-    MS5611.read();           //  note no error checking => "optimistic".
+    Serial.println(MS5611.read());           //  note no error checking => "optimistic".
     uint32_t stop = micros();
     Serial.print("T:\t");
     Serial.print(MS5611.getTemperature(), 2);

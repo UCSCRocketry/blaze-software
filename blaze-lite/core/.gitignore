@@ -1,2 +1,9 @@
-.pio
 .vscode
+.pio/*
+!.pio/libdeps/
+.pio/libdeps/*
+!.pio/libdeps/blaze_f411ce/
+.pio/libdeps/blaze_f411ce/*
+!.pio/libdeps/blaze_f411ce/MS5611_SPI/
+.pio/libdeps/blaze_f411ce/MS5611_SPI/*
+!.pio/libdeps/blaze_f411ce/MS5611_SPI/MS5611_SPI.cpp
