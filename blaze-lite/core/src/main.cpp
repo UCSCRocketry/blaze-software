@@ -27,6 +27,7 @@
 // System libraries
 #include "SensorData.h"
 #include "FlightState.h"
+#include <MS5611_SPI.h>
 
 // ============================================================================
 // Pin Definitions
@@ -44,6 +45,9 @@
 // SPI Flash (W25Q128 - placeholder, adjust pin as needed)
 #define SPI_FLASH_CS_PIN PB8
 
+#define BARO_CS_PIN PB9
+ 
+
 // ============================================================================
 // SPI Settings
 // ============================================================================
@@ -52,6 +56,7 @@
 #define SPI_MISO_PIN PA6
 #define SPI_MOSI_PIN PA7
 
+MS5611_SPI MS5611(BARO_CS_PIN); 
 
 // ============================================================================
 // Global Objects
@@ -195,6 +200,18 @@ void setup() {
         spiFlashMem.unmountfs();
     }
 
+    if (MS5611.begin() == true)
+    {
+        Serial.print("MS5611 found: ");
+        Serial.println(MS5611.getDeviceID(), HEX);
+    }
+    else
+    {
+        Serial.println("MS5611 not found. halt.");
+        while (1);
+    }
+    
+
     // Initialize State Machine
     stateMachine.init();
     Serial.println("State machine initialized - Starting in UNARMED state");
@@ -213,12 +230,24 @@ void setup() {
 // ============================================================================
 
 void loop() {
-    updateStateMachine();       // Flight logic
+    /*updateStateMachine();       // Flight logic
     readSensors();              // All sensor polling (includes logging)
     handleRadio();              // Uplink/downlink
     if (spiFlashReady) {
         spiFlashMem.tick();
-    }
+    }*/
+
+    uint32_t start = micros();
+    MS5611.read();           //  note no error checking => "optimistic".
+    uint32_t stop = micros();
+    Serial.print("T:\t");
+    Serial.print(MS5611.getTemperature(), 2);
+    Serial.print("\tP:\t");
+    Serial.print(MS5611.getPressure(), 2);
+    Serial.print("\tt:\t");
+    Serial.print(stop - start);
+    Serial.println();
+    delay(2000);
 }
 
 // ============================================================================
