@@ -14,17 +14,21 @@ LSM9DS1IMU::LSM9DS1IMU(uint8_t accelGyroCsPin, uint8_t magCsPin)
 
 LSM9DS1IMU::~LSM9DS1IMU() {}
 
-void LSM9DS1IMU::setUp() {
+bool LSM9DS1IMU::setUp() {
     Serial.println("Initializing LSM9DS1 IMU...");
-    while (!_lsm9ds1.begin()) {
-        Serial.println("Failed to initialize LSM9DS1 IMU! Retrying...");
-        delay(1000);
+    if (!_lsm9ds1.begin()) {
+        _isReady = false;
+        _hasSample = false;
+        Serial.println("Failed to initialize LSM9DS1 IMU!");
+        return false;
     }
+
     _isReady = true;
     Serial.println("Setting sensor range");
     _lsm9ds1.setupAccel(_lsm9ds1.LSM9DS1_ACCELRANGE_16G, _lsm9ds1.LSM9DS1_ACCELDATARATE_952HZ);
     _lsm9ds1.setupMag(_lsm9ds1.LSM9DS1_MAGGAIN_16GAUSS);
     _lsm9ds1.setupGyro(_lsm9ds1.LSM9DS1_GYROSCALE_245DPS);
+    return true;
 }
 
 void LSM9DS1IMU::pollSensors() {

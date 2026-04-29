@@ -27,7 +27,9 @@ void setup() {
     SPI.begin();
     delay(100); // Allow time for SPI to initialize
     Serial.println("Setting up IMU");
-    imu.setUp();
+    if (!imu.setUp()) {
+        Serial.println("IMU setup failed");
+    }
 }
 
 void loop() {

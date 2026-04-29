@@ -204,7 +204,10 @@ void setup() {
     }
 
     //initialize IMU
-    imu.setUp();
+    if (!imu.setUp()) {
+        writeSystemLog("[%lu] ERROR: LSM9DS1 initialization failed!\r\n", millis());
+        stateMachine.setError("IMU init failed");
+    }
 
     // Initialize State Machine
     stateMachine.init();

@@ -19,7 +19,7 @@ public:
     LSM9DS1IMU(uint8_t accelGyroCsPin, uint8_t magCsPin);
     ~LSM9DS1IMU();
 
-    void setUp();
+    bool setUp();
     void pollSensors();
     bool readAccel(float &x, float &y, float &z);
     bool readGyro(float &x, float &y, float &z);
