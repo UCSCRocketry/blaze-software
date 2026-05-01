@@ -27,7 +27,7 @@
 // System libraries
 #include "SensorData.h"
 #include "FlightState.h"
-#include <MS5611_SPI.h>
+#include "Baro.h"
 
 // ============================================================================
 // Pin Definitions
@@ -56,7 +56,7 @@
 #define SPI_MISO_PIN PA6
 #define SPI_MOSI_PIN PA7
 
-MS5611_SPI MS5611(BARO_CS_PIN); 
+Baro barometer(BARO_CS_PIN); 
 
 // ============================================================================
 // Global Objects
@@ -200,15 +200,14 @@ void setup() {
         spiFlashMem.unmountfs();
     }
 
-    if (MS5611.begin() == true)
+    if (barometer.init() == true)
     {
         Serial.print("MS5611 found: ");
-        Serial.println(MS5611.getDeviceID(), HEX);
+        Serial.println(barometer.getDeviceID(), HEX);
     }
     else
     {
         Serial.println("MS5611 not found. halt.");
-        while (1);
     }
     
 
@@ -230,24 +229,12 @@ void setup() {
 // ============================================================================
 
 void loop() {
-    /*updateStateMachine();       // Flight logic
+    updateStateMachine();       // Flight logic
     readSensors();              // All sensor polling (includes logging)
     handleRadio();              // Uplink/downlink
     if (spiFlashReady) {
         spiFlashMem.tick();
-    }*/
-
-    uint32_t start = micros();
-    Serial.println(MS5611.read());           //  note no error checking => "optimistic".
-    uint32_t stop = micros();
-    Serial.print("T:\t");
-    Serial.print(MS5611.getTemperature(), 2);
-    Serial.print("\tP:\t");
-    Serial.print(MS5611.getPressure(), 2);
-    Serial.print("\tt:\t");
-    Serial.print(stop - start);
-    Serial.println();
-    delay(2000);
+    }
 }
 
 // ============================================================================
@@ -290,12 +277,19 @@ void readSensors() {
     // TODO: Read Magnetometer (LSM9DS1 or similar)
     // sensorData.mag.valid = false;  // Placeholder
     
-    // TODO: Read Barometer (BMP280/MS5611)
-    // sensorData.baro.valid = false;  // Placeholder
-    // For now, use a placeholder altitude based on accelerometer
-    // In a real system, this would come from barometric pressure sensor
-    sensorData.baro.altitude = 0.0f;  // Placeholder
-    sensorData.baro.valid = false;
+    // Read Barometer (MS5611)
+    if (barometer.isReady()) {
+        barometer.read();
+        sensorData.baro.pressure = barometer.getPressure();
+        sensorData.baro.temperature = barometer.getTemperature();
+        sensorData.baro.altitude = barometer.getAltitude();
+        sensorData.baro.valid = true;
+        sensorData.baro.timestamp = currentTime;
+    } else {
+        sensorData.baro.valid = false;
+    }
+
+    printSensorData(sensorData);
     
     // Log data every time sensors are read
     writeLogEntry();
