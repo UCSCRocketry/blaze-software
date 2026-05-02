@@ -165,6 +165,18 @@ void setup() {
 
     SPI.begin();
     delay(2000);
+
+    // Initialize SD Card
+    Serial.println("Initializing SD card...");
+    card.startUp();
+
+    Serial.println("Initializing SPI flash...");
+    spiFlashReady = spiFlashMem.startUp();
+    if (!spiFlashReady) {
+        Serial.println("SPI flash unavailable (logging to SD only)");
+    } else {
+        Serial.println("SPI flash initialized successfully");
+    }
     
     // Initialize Radio
     Serial.println("Initializing radio...");
@@ -188,18 +200,6 @@ void setup() {
         accelerometer.enableDataEngine(true);
         accelerometer.setRange(SFE_KX134_RANGE64G);
         accelerometer.enable(true);
-    }
-    
-    // Initialize SD Card
-    Serial.println("Initializing SD card...");
-    card.startUp();
-
-    Serial.println("Initializing SPI flash...");
-    spiFlashReady = spiFlashMem.startUp();
-    if (!spiFlashReady) {
-        Serial.println("SPI flash unavailable (logging to SD only)");
-    } else {
-        Serial.println("SPI flash initialized successfully");
     }
 
     if (barometer.init() == true)
@@ -323,17 +323,12 @@ void updateStateMachine() {
                 // Disable logging and radio when entering UNARMED state
                 stateMachine.setLoggingEnabled(false);
                 stateMachine.setRadioFlag(false);
-                //if the fs is mounted, unmount it to ensure data integrity
-                if (spiFlashMem.isMounted()) {
-                    spiFlashMem.unmountfs();
-                }
                 break;
             case FlightPhase::ARMED:
                 writeSystemLog("[%lu] STATE: ARMED\r\n", millis());
                 // Enable logging and radio when entering ARMED state
                 stateMachine.setLoggingEnabled(true);
                 stateMachine.setRadioFlag(true);
-                spiFlashMem.mountfs();
                 break;
             case FlightPhase::LAUNCH:
                 writeSystemLog("[%lu] STATE: LAUNCH (time: %lu)\r\n", millis(), state.launchTime);
