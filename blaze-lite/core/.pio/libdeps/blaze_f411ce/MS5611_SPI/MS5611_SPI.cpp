@@ -148,11 +148,15 @@ int MS5611_SPI::read(uint8_t bits)
   //  ALL MAGIC NUMBERS ARE FROM DATASHEET
 
   convert(MS5611_CMD_CONVERT_D1, bits);
+  if (_result) return _result;
   //  NOTE: D1 and D2 seem reserved in MBED (NANO BLE)
   uint32_t _D1 = readADC();
+  if (_result) return _result;
 
   convert(MS5611_CMD_CONVERT_D2, bits);
+  if (_result) return _result;
   uint32_t _D2 = readADC();
+  if (_result) return _result;
 
   //  Serial.println(_D1);
   //  Serial.println(_D2);
