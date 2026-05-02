@@ -27,6 +27,7 @@
 // System libraries
 #include "SensorData.h"
 #include "FlightState.h"
+#include "Baro.h"
 
 // ============================================================================
 // Pin Definitions
@@ -44,6 +45,9 @@
 // SPI Flash (W25Q128 - placeholder, adjust pin as needed)
 #define SPI_FLASH_CS_PIN PB8
 
+#define BARO_CS_PIN PB9
+ 
+
 // ============================================================================
 // SPI Settings
 // ============================================================================
@@ -52,6 +56,7 @@
 #define SPI_MISO_PIN PA6
 #define SPI_MOSI_PIN PA7
 
+Baro barometer(BARO_CS_PIN); 
 
 // ============================================================================
 // Global Objects
@@ -197,6 +202,17 @@ void setup() {
         Serial.println("SPI flash initialized successfully");
     }
 
+    if (barometer.init() == true)
+    {
+        Serial.print("MS5611 found: ");
+        Serial.println(barometer.getDeviceID(), HEX);
+    }
+    else
+    {
+        Serial.println("MS5611 not found. halt.");
+    }
+    
+
     // Initialize State Machine
     stateMachine.init();
     Serial.println("State machine initialized - Starting in UNARMED state");
@@ -265,12 +281,19 @@ void readSensors() {
     // TODO: Read Magnetometer (LSM9DS1 or similar)
     // sensorData.mag.valid = false;  // Placeholder
     
-    // TODO: Read Barometer (BMP280/MS5611)
-    // sensorData.baro.valid = false;  // Placeholder
-    // For now, use a placeholder altitude based on accelerometer
-    // In a real system, this would come from barometric pressure sensor
-    sensorData.baro.altitude = 0.0f;  // Placeholder
-    sensorData.baro.valid = false;
+    // Read Barometer (MS5611)
+    if (barometer.isReady()) {
+        barometer.read();
+        sensorData.baro.pressure = barometer.getPressure();
+        sensorData.baro.temperature = barometer.getTemperature();
+        sensorData.baro.altitude = barometer.getAltitude();
+        sensorData.baro.valid = true;
+        sensorData.baro.timestamp = currentTime;
+    } else {
+        sensorData.baro.valid = false;
+    }
+
+    //printSensorData(sensorData);
     
     // Log data every time sensors are read
     writeLogEntry();

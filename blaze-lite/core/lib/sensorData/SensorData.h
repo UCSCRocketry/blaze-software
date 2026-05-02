@@ -53,3 +53,9 @@ void initSensorData(SensorData* data);
  * @return Magnitude of acceleration
  */
 float calculateAccelMagnitude(float x, float y, float z);
+
+/**
+ * @brief Print the sensor data to the serial port
+ * @param data Reference to the SensorData structure to print
+ */
+void printSensorData(const SensorData& data);
