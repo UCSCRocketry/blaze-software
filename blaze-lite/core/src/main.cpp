@@ -368,13 +368,19 @@ void handleRadio() {
         if (radio.available()) {
             uint8_t rxBuffer[64];
             size_t received = radio.recv(rxBuffer, sizeof(rxBuffer));
+           
+            // Adjust for callsign prefix: 6 chars callsign + 1 char ':'
+            constexpr size_t CALLSIGN_PREFIX_LEN = 7;
             
             if (received > 0) {
+                uint8_t* actualPacket = rxBuffer + CALLSIGN_PREFIX_LEN;
+                size_t actualLength = received - CALLSIGN_PREFIX_LEN;
+
                 // Try to decode as a DataPacket
                 DecodedPacket decoded;
-                if (received == DataPacket::PACKET_SIZE) {
+                if (actualLength == DataPacket::PACKET_SIZE) {
                     DataPacket tempPacket(StartByte::NO_RESPONSE);
-                    if (tempPacket.decodePacket(rxBuffer, received, decoded)) {
+                    if (tempPacket.decodePacket(actualPacket, actualLength, decoded)) {
                         // Log received telemetry/command
                         writeSystemLog("[%lu] RX: ID=%c%c, Seq=%lu, TS=%lu\r\n", 
                             millis(), decoded.idA, decoded.idB, decoded.sequenceID, decoded.timestamp);
