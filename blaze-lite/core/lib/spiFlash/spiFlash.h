@@ -66,10 +66,25 @@ class spiFlash {
     bool exportRootFiles(const SpiFlashExportCallbacks* callbacks);
 
     /**
+     * Same as exportRootFiles, but only files whose names match a glob pattern (* and ?).
+     * pattern nullptr or "" exports all files (same as exportRootFiles).
+     */
+    bool exportRootFilesMatching(const SpiFlashExportCallbacks* callbacks, const char* pattern);
+
+    /**
      * Delete a file on SPI flash by path (e.g. "DATA000.txt"). Uses lfs_remove().
      * Do not remove a path that is the same as the currently open data/log session file.
      */
     bool removeFile(const char* path);
+
+    /** False if path is the active data or log file while that handle is open. */
+    bool canRemovePath(const char* path) const;
+
+    /**
+     * Delete root regular files matching glob pattern (* and ?). Skips active session files.
+     * Returns number removed, or -1 on error (e.g. not mounted, invalid pattern).
+     */
+    int removeFilesMatching(const char* pattern);
 
     // Filesystem lifecycle helpers for SPI flash LittleFS volume.
     bool mountfs();

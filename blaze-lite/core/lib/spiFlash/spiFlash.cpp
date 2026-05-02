@@ -188,6 +188,19 @@ bool makeLogFileName(char* buffer, size_t bufferSize) {
     return false;
 }
 
+bool globMatch(const char* pattern, const char* str) {
+    if (pattern[0] == '\0') {
+        return str[0] == '\0';
+    }
+    if (pattern[0] == '*') {
+        return globMatch(pattern + 1, str) || (str[0] != '\0' && globMatch(pattern, str + 1));
+    }
+    if (pattern[0] == '?') {
+        return str[0] != '\0' && globMatch(pattern + 1, str + 1);
+    }
+    return str[0] != '\0' && pattern[0] == str[0] && globMatch(pattern + 1, str + 1);
+}
+
 void printRootFiles() {
     lfs_dir_t dir;
     int err = lfs_dir_open(&littlefs, &dir, "/");
@@ -564,6 +577,10 @@ bool spiFlash::cmp_io_priority::operator()(const std::tuple<char, std::vector<ch
 }
 
 bool spiFlash::exportRootFiles(const SpiFlashExportCallbacks* callbacks) {
+    return exportRootFilesMatching(callbacks, nullptr);
+}
+
+bool spiFlash::exportRootFilesMatching(const SpiFlashExportCallbacks* callbacks, const char* pattern) {
     if (callbacks == nullptr || callbacks->onBeginFile == nullptr || callbacks->onWrite == nullptr ||
         callbacks->onEndFile == nullptr) {
         return false;
@@ -587,12 +604,17 @@ bool spiFlash::exportRootFiles(const SpiFlashExportCallbacks* callbacks) {
         return false;
     }
 
+    const bool filter = (pattern != nullptr && pattern[0] != '\0');
+
     lfs_info info;
     while ((err = lfs_dir_read(&littlefs, &root, &info)) > 0) {
         if (strcmp(info.name, ".") == 0 || strcmp(info.name, "..") == 0) {
             continue;
         }
         if (info.type != LFS_TYPE_REG) {
+            continue;
+        }
+        if (filter && !globMatch(pattern, info.name)) {
             continue;
         }
 
@@ -647,6 +669,69 @@ bool spiFlash::removeFile(const char* path) {
         return false;
     }
     return lfs_remove(&littlefs, path) == 0;
+}
+
+bool spiFlash::canRemovePath(const char* path) const {
+    if (path == nullptr || path[0] == '\0') {
+        return false;
+    }
+    if (dataFileOpen && strcmp(path, dataFileName) == 0) {
+        return false;
+    }
+    if (logFileOpen && strcmp(path, logFileName) == 0) {
+        return false;
+    }
+    return true;
+}
+
+int spiFlash::removeFilesMatching(const char* pattern) {
+    if (pattern == nullptr || pattern[0] == '\0' || !fsMounted) {
+        return -1;
+    }
+    if (strchr(pattern, '/') != nullptr || strchr(pattern, '\\') != nullptr) {
+        return -1;
+    }
+
+    int fe = flush();
+    if (fe < 0) {
+        return -1;
+    }
+    fe = kflush();
+    if (fe < 0) {
+        return -1;
+    }
+
+    lfs_dir_t root;
+    int err = lfs_dir_open(&littlefs, &root, "/");
+    if (err < 0) {
+        return -1;
+    }
+
+    int removed = 0;
+    lfs_info info;
+    while ((err = lfs_dir_read(&littlefs, &root, &info)) > 0) {
+        if (strcmp(info.name, ".") == 0 || strcmp(info.name, "..") == 0) {
+            continue;
+        }
+        if (info.type != LFS_TYPE_REG) {
+            continue;
+        }
+        if (!globMatch(pattern, info.name)) {
+            continue;
+        }
+        if (!canRemovePath(info.name)) {
+            continue;
+        }
+        if (lfs_remove(&littlefs, info.name) == 0) {
+            ++removed;
+        }
+    }
+
+    lfs_dir_close(&littlefs, &root);
+    if (err < 0) {
+        return -1;
+    }
+    return removed;
 }
 
 bool spiFlash::mountfs() {

@@ -81,7 +81,7 @@ DataPacket statusPacket(StartByte::NO_RESPONSE);    // Status checks
 static constexpr uint32_t RADIO_FREQUENCY = 433;  // 433 MHz
 static constexpr uint32_t SENSOR_READ_INTERVAL = 20;    // ms (50 Hz)
 static constexpr uint32_t RADIO_TX_INTERVAL = 100;      // ms (10 Hz)
-static constexpr uint32_t RADIO_RX_INTERVAL = 50;       // ms (20 Hz)
+static constexpr uint32_t RADIO_RX_INTERVAL = 20;       // ms (20 Hz)
 
 uint32_t lastSensorRead = 0;
 uint32_t lastRadioTx = 0;
@@ -102,6 +102,10 @@ void parseRadioCommand(const DecodedPacket& decoded);
 void writeLogEntry();
 void writeSystemLog(const char* format, ...);
 void printReceivedPacket(const uint8_t* buffer, size_t length, const DecodedPacket* decoded);
+void handleSerialCommands();
+void processSerialLine(char* line);
+void serialDumpSpiFlashAll(const char* pattern);
+void serialDeleteSpiFlashFile(const char* filename);
 // ============================================================================
 // Setup
 // ============================================================================
@@ -191,8 +195,6 @@ void setup() {
         Serial.println("SPI flash unavailable (logging to SD only)");
     } else {
         Serial.println("SPI flash initialized successfully");
-        //TODO: unmounted due to testing only. 
-        spiFlashMem.unmountfs();
     }
 
     // Initialize State Machine
@@ -206,6 +208,7 @@ void setup() {
         
     Serial.println("=== System Ready ===");
     Serial.println("Waiting for ARM command...");
+    Serial.println("Serial: flash dump [pattern] | flash rm <pattern> | flash help");
 }
 
 // ============================================================================
@@ -213,6 +216,7 @@ void setup() {
 // ============================================================================
 
 void loop() {
+    handleSerialCommands();
     updateStateMachine();       // Flight logic
     readSensors();              // All sensor polling (includes logging)
     handleRadio();              // Uplink/downlink
@@ -711,4 +715,198 @@ void parseRadioCommand(const DecodedPacket& decoded) {
     Serial.print(decoded.sequenceID);
     Serial.print(", Timestamp: ");
     Serial.println(decoded.timestamp);
+}
+
+// ============================================================================
+// Serial monitor — SPI flash maintenance
+// ============================================================================
+
+namespace {
+
+bool trimInPlace(char* s) {
+    if (s == nullptr) {
+        return false;
+    }
+    char* start = s;
+    while (*start == ' ' || *start == '\t') {
+        ++start;
+    }
+    if (start != s) {
+        memmove(s, start, strlen(start) + 1);
+    }
+    size_t n = strlen(s);
+    while (n > 0 && (s[n - 1] == ' ' || s[n - 1] == '\t')) {
+        s[--n] = '\0';
+    }
+    return s[0] != '\0';
+}
+
+bool flashDumpOnBegin(void* /*user*/, const char* filename) {
+    Serial.print("\r\n===== ");
+    Serial.print(filename);
+    Serial.println(" =====");
+    return true;
+}
+
+bool flashDumpOnWrite(void* /*user*/, const uint8_t* data, size_t len) {
+    if (data != nullptr && len > 0) {
+        Serial.write(data, len);
+    }
+    return true;
+}
+
+bool flashDumpOnEnd(void* /*user*/) {
+    Serial.println();
+    return true;
+}
+
+}  // namespace
+
+void handleSerialCommands() {
+    static char lineBuf[96];
+    static size_t lineLen = 0;
+
+    while (Serial.available() > 0) {
+        const int ch = Serial.read();
+        if (ch < 0) {
+            break;
+        }
+        const char c = static_cast<char>(ch);
+        // Accept CR and/or LF so monitors that send only "\r" still terminate lines.
+        if (c == '\r' || c == '\n') {
+            lineBuf[lineLen] = '\0';
+            lineLen = 0;
+            if (lineBuf[0] != '\0') {
+                processSerialLine(lineBuf);
+            }
+            continue;
+        }
+        if (lineLen < sizeof(lineBuf) - 1) {
+            lineBuf[lineLen++] = c;
+        } else {
+            lineLen = 0;
+            Serial.println("Serial: line too long (max 95 chars), discarded.");
+        }
+    }
+}
+
+void processSerialLine(char* line) {
+    if (line == nullptr || !trimInPlace(line)) {
+        return;
+    }
+
+    if (strncmp(line, "flash ", 6) != 0) {
+        return;
+    }
+
+    const char* rest = line + 6;
+    while (*rest == ' ' || *rest == '\t') {
+        ++rest;
+    }
+
+    if (strncmp(rest, "help", 4) == 0 && (rest[4] == '\0' || rest[4] == ' ' || rest[4] == '\t')) {
+        Serial.println("SPI flash commands (root filenames only; * and ? wildcards):");
+        Serial.println("  flash dump [pat] — dump files (omit pattern = all), e.g. flash dump DATA*");
+        Serial.println("  flash rm <pat>   — delete matching files, e.g. flash rm DATA*.txt");
+        return;
+    }
+
+    if (strncmp(rest, "dump", 4) == 0 && (rest[4] == '\0' || rest[4] == ' ' || rest[4] == '\t')) {
+        const char* arg = rest + 4;
+        while (*arg == ' ' || *arg == '\t') {
+            ++arg;
+        }
+        serialDumpSpiFlashAll(arg[0] != '\0' ? arg : nullptr);
+        return;
+    }
+
+    if (strncmp(rest, "rm ", 3) == 0) {
+        const char* name = rest + 3;
+        while (*name == ' ' || *name == '\t') {
+            ++name;
+        }
+        if (name[0] == '\0') {
+            Serial.println("Usage: flash rm <pattern>  (e.g. DATA* or LOG???.txt)");
+            return;
+        }
+        serialDeleteSpiFlashFile(name);
+        return;
+    }
+
+    Serial.println("Unknown flash command. Type: flash help");
+}
+
+void serialDumpSpiFlashAll(const char* pattern) {
+    if (!spiFlashReady) {
+        Serial.println("SPI flash not initialized.");
+        return;
+    }
+
+    const bool wasMounted = spiFlashMem.isMounted();
+    if (!wasMounted && !spiFlashMem.mountfs()) {
+        Serial.println("Could not mount SPI flash.");
+        return;
+    }
+
+    SpiFlashExportCallbacks cb = {};
+    cb.user = nullptr;
+    cb.onBeginFile = flashDumpOnBegin;
+    cb.onWrite = flashDumpOnWrite;
+    cb.onEndFile = flashDumpOnEnd;
+
+    if (pattern != nullptr && pattern[0] != '\0') {
+        Serial.print("--- SPI flash dump (matching ");
+        Serial.print(pattern);
+        Serial.println(") ---");
+        if (!spiFlashMem.exportRootFilesMatching(&cb, pattern)) {
+            Serial.println("SPI flash export failed (mount or read error).");
+        }
+    } else {
+        Serial.println("--- SPI flash dump (all files) ---");
+        if (!spiFlashMem.exportRootFiles(&cb)) {
+            Serial.println("SPI flash export failed (mount or read error).");
+        }
+    }
+    Serial.println("--- end SPI flash dump ---");
+
+    if (!wasMounted) {
+        spiFlashMem.unmountfs();
+    }
+}
+
+void serialDeleteSpiFlashFile(const char* filename) {
+    if (!spiFlashReady) {
+        Serial.println("SPI flash not initialized.");
+        return;
+    }
+    if (filename == nullptr || filename[0] == '\0') {
+        Serial.println("Usage: flash rm <pattern>  (e.g. DATA* or LOG???.txt)");
+        return;
+    }
+    if (strchr(filename, '/') != nullptr || strchr(filename, '\\') != nullptr) {
+        Serial.println("Only root filenames are allowed (no path separators).");
+        return;
+    }
+
+    const bool wasMounted = spiFlashMem.isMounted();
+    if (!wasMounted && !spiFlashMem.mountfs()) {
+        Serial.println("Could not mount SPI flash.");
+        return;
+    }
+
+    const int n = spiFlashMem.removeFilesMatching(filename);
+    if (n < 0) {
+        Serial.println("Delete failed (invalid pattern or filesystem error).");
+    } else if (n == 0) {
+        Serial.println("No matching files (or only active session file(s), which are protected).");
+    } else {
+        Serial.print("Deleted ");
+        Serial.print(n);
+        Serial.print(" file(s) matching ");
+        Serial.println(filename);
+    }
+
+    if (!wasMounted) {
+        spiFlashMem.unmountfs();
+    }
 }
