@@ -289,7 +289,7 @@ void readSensors() {
         sensorData.baro.valid = false;
     }
 
-    printSensorData(sensorData);
+    //printSensorData(sensorData);
     
     // Log data every time sensors are read
     writeLogEntry();

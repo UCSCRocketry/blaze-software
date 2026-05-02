@@ -11,6 +11,10 @@ Baro::Baro(uint8_t CS) : cs_pin(CS), baro(CS), _initialized(false) {
 bool Baro::init() {
   if (baro.begin()) {
     _initialized = true;
+
+    // Reset the sensor
+    baro.reset();
+
     return true;
   }
   _initialized = false;
