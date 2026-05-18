@@ -176,6 +176,25 @@ void setup() {
         Serial.println("SPI flash unavailable (logging to SD only)");
     } else {
         Serial.println("SPI flash initialized successfully");
+        const size_t flashTotalBytes = spiFlashMem.getTotalStorageBytes();
+        const size_t flashUsedBytes = spiFlashMem.getUsedStorageBytes();
+        const size_t flashFreeBytes = flashTotalBytes > flashUsedBytes ? flashTotalBytes - flashUsedBytes : 0;
+        const float flashTotalMB = static_cast<float>(flashTotalBytes) / (1024.0f * 1024.0f);
+        const float flashUsedMB = static_cast<float>(flashUsedBytes) / (1024.0f * 1024.0f);
+        const float flashFreeMB = static_cast<float>(flashFreeBytes) / (1024.0f * 1024.0f);
+        const float flashUsedPercent = flashTotalBytes > 0
+                                            ? (static_cast<float>(flashUsedBytes) * 100.0f) / static_cast<float>(flashTotalBytes)
+                                            : 0.0f;
+
+        Serial.print("SPI flash storage: used ");
+        Serial.print(flashUsedMB, 2);
+        Serial.print(" / ");
+        Serial.print(flashTotalMB, 2);
+        Serial.print(" MB (");
+        Serial.print(flashUsedPercent, 1);
+        Serial.print("%), free ");
+        Serial.print(flashFreeMB, 2);
+        Serial.println(" MB");
     }
     
     // Initialize Radio

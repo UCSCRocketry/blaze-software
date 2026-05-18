@@ -357,6 +357,20 @@ bool spiFlash::startUp() {
 
 uint8_t spiFlash::getCS_PIN() { return kFlashCsPin; }
 
+size_t spiFlash::getTotalStorageBytes() const { return flashChip.size(); }
+
+size_t spiFlash::getUsedStorageBytes() const {
+    if (!fsMounted) {
+        return 0;
+    }
+
+    const lfs_ssize_t usedBytes = lfs_fs_size(const_cast<lfs_t*>(&littlefs));
+    if (usedBytes < 0) {
+        return 0;
+    }
+    return static_cast<size_t>(usedBytes);
+}
+
 ssize_t spiFlash::read(const size_t offset, const size_t bytes, char* buffer) {
     if (bytes == 0) {
         return 0;
