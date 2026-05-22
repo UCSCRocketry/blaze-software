@@ -111,6 +111,7 @@ void handleSerialCommands();
 void processSerialLine(char* line);
 void serialDumpSpiFlashAll(const char* pattern);
 void serialDeleteSpiFlashFile(const char* filename);
+void manageSpiFlashStorage();
 // ============================================================================
 // Setup
 // ============================================================================
@@ -253,6 +254,7 @@ void setup() {
 void loop() {
     handleSerialCommands();
     updateStateMachine();       // Flight logic
+    manageSpiFlashStorage();    // Check SPI flash storage and rotate to SD if low
     readSensors();              // All sensor polling (includes logging)
     handleRadio();              // Uplink/downlink
     if (spiFlashReady) {
@@ -600,6 +602,39 @@ void printReceivedPacket(const uint8_t* buffer, size_t length, const DecodedPack
             }
         }
         Serial.println("\"");
+    }
+}
+
+// Check SPI flash usable space; if below threshold, export files to SD and remove them from SPI flash.
+void manageSpiFlashStorage() {
+    const size_t kThresholdBytes = 1024; // 1 KiB threshold
+    if (!spiFlashReady) {
+        return;
+    }
+
+    const size_t total = spiFlashMem.getTotalStorageBytes();
+    const size_t used = spiFlashMem.getUsedStorageBytes();
+    const size_t free = total > used ? total - used : 0;
+
+    if (free < kThresholdBytes) {
+        Serial.println("SPI flash low on free space — exporting to SD and cleaning up...");
+
+        // Attempt to export all root files to SD root (no subfolder)
+        bool exported = card.exportSpiFlashRootTo(spiFlashMem, "SPI_Flash_Export");
+        if (!exported) {
+            Serial.println("SPI flash export to SD failed");
+            return;
+        }
+
+        // Remove all regular root files on SPI flash. This will skip active session files.
+        int removed = spiFlashMem.removeFilesMatching("*");
+        if (removed < 0) {
+            Serial.println("Failed to remove files from SPI flash");
+        } else {
+            Serial.print("Removed ");
+            Serial.print(removed);
+            Serial.println(" files from SPI flash");
+        }
     }
 }
 
