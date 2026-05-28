@@ -364,11 +364,11 @@ size_t spiFlash::getUsedStorageBytes() const {
         return 0;
     }
 
-    const lfs_ssize_t usedBytes = lfs_fs_size(const_cast<lfs_t*>(&littlefs));
-    if (usedBytes < 0) {
+    const lfs_ssize_t usedBlocks = lfs_fs_size(const_cast<lfs_t*>(&littlefs));
+    if (usedBlocks < 0) {
         return 0;
     }
-    return static_cast<size_t>(usedBytes);
+    return static_cast<size_t>(usedBlocks) * kLfsBlockSize;
 }
 
 ssize_t spiFlash::read(const size_t offset, const size_t bytes, char* buffer) {
