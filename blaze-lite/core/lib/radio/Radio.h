@@ -10,7 +10,7 @@ public:
   String call_sign;
 
   void setCallSign(String sign);
-  bool init(uint32_t freq);
+  bool init(float freq);
   bool send(const uint8_t* buf, uint8_t len = 32, bool send_call_sign = false);
   size_t recv(uint8_t* buf, uint8_t len, uint32_t timeoutMs);
   size_t recv(uint8_t* buf, uint8_t len);

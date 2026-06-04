@@ -83,7 +83,7 @@ DataPacket baroPacket(StartByte::NO_RESPONSE);       // Barometer
 DataPacket statusPacket(StartByte::NO_RESPONSE);    // Status checks
 
 
-static constexpr uint32_t RADIO_FREQUENCY = 433;  // 433 MHz
+static constexpr float RADIO_FREQUENCY = 429.080f;  // MHz (supports fractional)
 static constexpr uint32_t SENSOR_READ_INTERVAL = 20;    // ms (50 Hz)
 static constexpr uint32_t RADIO_TX_INTERVAL = 100;      // ms (10 Hz)
 static constexpr uint32_t RADIO_RX_INTERVAL = 20;       // ms (20 Hz)
