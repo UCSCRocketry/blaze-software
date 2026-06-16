@@ -630,6 +630,11 @@ void manageSpiFlashStorage() {
         writeSystemLog("SPI flash low on free space — exporting to SD and cleaning up...");
 
         // Attempt to export all root files to SD root (no subfolder)
+        if (!SDReady) {
+            Serial.println("SD card not available, cannot export SPI flash data");
+            writeSystemLog("SD card not available, cannot export SPI flash data");
+            return;
+        }
         bool exported = card.exportSpiFlashRootTo(spiFlashMem, "SPI_Flash_Export");
         if (!exported) {
             Serial.println("SPI flash export to SD failed");
@@ -931,6 +936,10 @@ void processSerialLine(char* line) {
 void serialDumpSpiFlashAll(const char* pattern) {
     if (!spiFlashReady) {
         Serial.println("SPI flash not initialized.");
+        return;
+    }
+    if (!SDReady) {
+        Serial.println("SD card not initialized");
         return;
     }
 
