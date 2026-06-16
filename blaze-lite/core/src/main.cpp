@@ -30,6 +30,12 @@
 #include "Baro.h"
 
 // ============================================================================
+// Debug Flags 
+// ============================================================================
+
+bool DEBUG_SENSOR_READS = true;   // Print sensor values on each read to serial
+
+// ============================================================================
 // Pin Definitions
 // ============================================================================
 
@@ -239,12 +245,12 @@ void setup() {
 
     // Initialize State Machine
     stateMachine.init();
-    Serial.println("State machine initialized - Starting in UNARMED state");
+    Serial.println("State machine initialized - Starting in ARMED state");
     
     // Initialize Sensor Data
     initSensorData(&sensorData);
 
-    stateMachine.setPhase(FlightPhase::UNARMED);
+    stateMachine.setPhase(FlightPhase::ARMED);
         
     Serial.println("=== System Ready ===");
     Serial.println("Waiting for ARM command...");
@@ -318,7 +324,32 @@ void readSensors() {
         sensorData.baro.valid = false;
     }
 
-    //printSensorData(sensorData);
+    // Print sensor readings
+    if (DEBUG_SENSOR_READS) {
+        if (sensorData.accel.valid) {
+            Serial.print("ACCEL[g] x=");
+            Serial.print(sensorData.accel.x, 3);
+            Serial.print(" y=");
+            Serial.print(sensorData.accel.y, 3);
+            Serial.print(" z=");
+            Serial.print(sensorData.accel.z, 3);
+            Serial.print(" |mag=");
+            Serial.println(sensorData.accel.magnitude, 3);
+        } else {
+            Serial.println("ACCEL invalid");
+        }
+        if (sensorData.baro.valid) {
+            Serial.print("BARO p=");
+            Serial.print(sensorData.baro.pressure, 2);
+            Serial.print(" Pa t=");
+            Serial.print(sensorData.baro.temperature, 2);
+            Serial.print(" C alt=");
+            Serial.print(sensorData.baro.altitude, 2);
+            Serial.println(" m");
+        } else {
+            Serial.println("BARO invalid");
+        }
+    }
     
     // Log data every time sensors are read
     writeLogEntry();
