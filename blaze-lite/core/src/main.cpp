@@ -72,6 +72,7 @@ Radio radio(RADIO_CS_PIN, RADIO_INT_PIN, RADIO_RST_PIN);
 sdCard card(SD_CS_PIN);
 spiFlash spiFlashMem;
 bool spiFlashReady = false;
+bool SDReady = false;
 
 // Data structures
 SensorData sensorData;
@@ -83,7 +84,7 @@ DataPacket baroPacket(StartByte::NO_RESPONSE);       // Barometer
 DataPacket statusPacket(StartByte::NO_RESPONSE);    // Status checks
 
 
-static constexpr float RADIO_FREQUENCY = 429.080f;  // MHz (supports fractional)
+static constexpr float RADIO_FREQUENCY = 429.080f;  // MHz
 static constexpr uint32_t SENSOR_READ_INTERVAL = 20;    // ms (50 Hz)
 static constexpr uint32_t RADIO_TX_INTERVAL = 100;      // ms (10 Hz)
 static constexpr uint32_t RADIO_RX_INTERVAL = 20;       // ms (20 Hz)
@@ -169,12 +170,12 @@ void setup() {
 
     // Initialize SD Card
     Serial.println("Initializing SD card...");
-    card.startUp();
+    SDReady = card.startUp();
 
     Serial.println("Initializing SPI flash...");
     spiFlashReady = spiFlashMem.startUp();
     if (!spiFlashReady) {
-        Serial.println("SPI flash unavailable (logging to SD only)");
+        Serial.println("SPI flash unavailable");
     } else {
         Serial.println("SPI flash initialized successfully");
         const size_t flashTotalBytes = spiFlashMem.getTotalStorageBytes();
@@ -205,7 +206,10 @@ void setup() {
         stateMachine.setError("Radio init failed");
     } else {
         Serial.println("Radio initialized successfully");
-        radio.setCallSign("KO6JIZ");
+        Serial.print("Radio frequency set to: ");
+        Serial.print(RADIO_FREQUENCY, 3);
+        Serial.println(" MHz");
+        radio.setCallSign("KO6NAT");
     }
 
     // // Initialize Accelerometer
@@ -515,10 +519,13 @@ void writeLogEntry() {
     );
     
     // Write to SD card
-    ssize_t written = card.writeData(strlen(logBuffer), logBuffer);
-    if (written < 0) {
-        writeSystemLog("[%lu] ERROR: SD data write failed\r\n", millis());
+    if (SDReady){
+        ssize_t written = card.writeData(strlen(logBuffer), logBuffer);
+        if (written < 0) {
+            writeSystemLog("[%lu] ERROR: SD data write failed\r\n", millis());
+        }
     }
+    
 
     if (spiFlashReady) {
         if (spiFlashMem.queue(strlen(logBuffer), logBuffer, spiFlash::P_STD) < 0) {
@@ -545,11 +552,13 @@ void writeSystemLog(const char* format, ...) {
     Serial.print(message);
     
     // Write to log file using writeLog method
-    ssize_t written = card.writeLog(message, strlen(message));
-    if (written < 0) {
-        // If log write fails, at least try to print to Serial
-        Serial.print("Log write failed: ");
-        Serial.println(message);
+    if (SDReady){
+        ssize_t written = card.writeLog(message, strlen(message));
+        if (written < 0) {
+            // If log write fails, at least try to print to Serial
+            Serial.print("Log write failed: ");
+            Serial.println(message);
+        }
     }
 
     if (spiFlashReady) {
@@ -607,7 +616,7 @@ void printReceivedPacket(const uint8_t* buffer, size_t length, const DecodedPack
 
 // Check SPI flash usable space; if below threshold, export files to SD and remove them from SPI flash.
 void manageSpiFlashStorage() {
-    const size_t kThresholdBytes = 1024; // 1 KiB threshold
+    const size_t kThresholdBytes = 16 * 1024; // 16 KiB threshold
     if (!spiFlashReady) {
         return;
     }
@@ -618,11 +627,13 @@ void manageSpiFlashStorage() {
 
     if (free < kThresholdBytes) {
         Serial.println("SPI flash low on free space — exporting to SD and cleaning up...");
+        writeSystemLog("SPI flash low on free space — exporting to SD and cleaning up...");
 
         // Attempt to export all root files to SD root (no subfolder)
         bool exported = card.exportSpiFlashRootTo(spiFlashMem, "SPI_Flash_Export");
         if (!exported) {
             Serial.println("SPI flash export to SD failed");
+            writeSystemLog("SPI flash export to SD failed");
             return;
         }
 
@@ -630,10 +641,13 @@ void manageSpiFlashStorage() {
         int removed = spiFlashMem.removeFilesMatching("*");
         if (removed < 0) {
             Serial.println("Failed to remove files from SPI flash");
-        } else {
+            writeSystemLog("Failed to remove files from SPI flash");
+        } 
+        else {
             Serial.print("Removed ");
             Serial.print(removed);
             Serial.println(" files from SPI flash");
+            writeSystemLog("Removed %d files from SPI flash", removed);
         }
     }
 }
@@ -945,7 +959,8 @@ void serialDumpSpiFlashAll(const char* pattern) {
             Serial.println("SPI flash export failed (mount or read error).");
         }
     }
-    Serial.println("--- end SPI flash dump ---");
+    delay(50);
+    Serial.println("--- end SPI flash dump, please restart system ---");
 
     if (!wasMounted) {
         spiFlashMem.unmountfs();
