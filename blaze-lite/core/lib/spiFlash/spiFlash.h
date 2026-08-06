@@ -34,6 +34,12 @@ class spiFlash {
 
     uint8_t getCS_PIN();
 
+    /** Total raw capacity of the SPI flash chip in bytes. */
+    size_t getTotalStorageBytes() const;
+
+    /** Used LittleFS storage in bytes, including filesystem metadata. Returns 0 if unavailable. */
+    size_t getUsedStorageBytes() const;
+
     /** Copy payload into the priority queue; safe for stack buffers. Returns 0 or negative on error. */
     int queue(size_t bytes, const char* data, char priority = P_UNIMPORTANT);
 

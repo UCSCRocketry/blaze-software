@@ -85,7 +85,7 @@ sdCard::~sdCard() {
     logFile.close();
 }
 
-void sdCard::startUp() {
+bool sdCard::startUp() {
     //sd card init
     //serial begin should be called in the initialize state from state machine
     Serial.println("Initializing SD card...");
@@ -96,7 +96,7 @@ void sdCard::startUp() {
     
     if (!SD.begin(this->CS_PIN)) {
         Serial.println("SD card failed to connect. Reason: failed to connect to SD breakout board, check CS pin");
-        return;
+        return false;
     }
     Serial.println("SD Card initialized.");
 
@@ -123,6 +123,7 @@ void sdCard::startUp() {
         Serial.print("Log file created: ");
         Serial.println(logFileName);
     }
+    return true;
 }
 
 uint8_t sdCard::getCS_PIN() {
