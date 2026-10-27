@@ -22,6 +22,7 @@ bool GPS::sendUBXMessage(const uint8_t* message, size_t length) {
     return status == 0 && numBytes == length; // Return true if transmission was successful and complete.
 }
 
+
 /** Reads a UBX message from the GPS module, and updates the provided address with the data.
  * @param addr Pointer to the buffer to store the received message.
  * @param length Length of the buffer in bytes.

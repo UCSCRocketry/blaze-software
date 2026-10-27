@@ -18,7 +18,7 @@ struct gpsData{
 
     bool validity; // checksum
     uint32_t timestampMs; // RECEIVER's net timestamp in milliseconds. not necessarily a valid one for all fields.
-    uint8_t satelliteCount;
+    uint8_t satelliteCount; 
     
     float accuracyHorizontal;
     float accuracyVertical;
@@ -47,7 +47,7 @@ class GPS {
         ); // sends a UBX message to the GPS module.  
 
         void getUBXMessage(
-            uint8_t* message, 
+            uint8_t* addr, 
             size_t length
         ); // reads a UBX message from the GPS module.
 
