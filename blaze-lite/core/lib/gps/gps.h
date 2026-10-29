@@ -1,9 +1,19 @@
 #pragma once
 #include <Wire.h>
-// #include <SPI.h> (investigate)
 
+enum UbxAckType{
+    UBX_ACK,
+    UBX_NAK,
+    UBX_TIMEOUT
+};
 
-// tune if necessary during sims
+enum UbxParserState{
+    SYNC1,
+    SYNC2,
+    HEADER,
+    DATA,
+    CHECKSUM
+};
 
 struct gpsData{
     int32_t latitudeE7; // latitude in degrees, shifted by 1e7
@@ -32,11 +42,13 @@ class GPS {
         bool isInitialized = false;
         bool isConnected = false;
 
+        // initialize all hardware-facing consts like ports/pins here. there might also be need for some helpers
+
         const uint32_t TIMEOUT_TOLERANCE_MS = 5000; // this is probably way too high.
         const uint8_t GPS_I2C_ADDRESS = 0x42; // default address for the GPS module. 
         const uint16_t DEFAULT_POLLING_RATE_MS = 100; // 10 times per second. adjust.
+        const uint16_t ACK_MSG_LENGTH = 10; 
 
-        // initialize all hardware-facing consts like ports/pins here. there might also be need for some helpers
         bool setConnectState(bool state); 
 
         void setUpI2C(); // sets up the I2C connection to the GPS module
@@ -44,21 +56,21 @@ class GPS {
         bool sendUBXMessage(
             const uint8_t* message, 
             size_t length
-        ); // sends a UBX message to the GPS module.  
+        );
 
-        void getUBXMessage(
+        void readBytes(
             uint8_t* addr, 
             size_t length
-        ); // reads a UBX message from the GPS module.
+        ); 
 
-        void waitAcknowledgment(
-            const uint8_t* message, 
-            size_t length, 
-            uint32_t timeoutMs
-        ); // waits for an acknowledgment from the GPS module after sending a UBX message.
+        void parseUBXPacket(
+            const uint8_t* packet, 
+            size_t length
+        );
+
+        UbxAckType waitAcknowledgment(uint32_t timeoutMs); 
 
         bool setUpNavPvt(); // sets up data transmission from the GPS module to the MCU.
-
         bool setPollingRate(uint16_t rateMs); // sets the polling rate of the GPS module
 
     public:
@@ -71,10 +83,10 @@ class GPS {
         /** Getter for connected state */
         bool getConnectState(); // returns the connection state
 
-        /** Reads the packet and updates all fields. */
+        /** Parses a packet and updates all fields. */
         void update(); 
 
-        /** Returns the current GPS data. */
+        /** Returns the current GPS data.*/
         gpsData getData() const { return data; }
 };
 
