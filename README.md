@@ -1,2 +1,2 @@
 # blaze-software
-Avionics software repo, est 2025-2026
+Avionics software repo, est 2025-2027
