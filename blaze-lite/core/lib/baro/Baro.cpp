@@ -40,7 +40,7 @@ float Baro::getTemperature() {
   return baro.getTemperature();
 }
 
-uint8_t Baro::getDeviceID() {
+uint32_t Baro::getDeviceID() {
   if (!_initialized) return 0;
   return baro.getDeviceID();
 }
