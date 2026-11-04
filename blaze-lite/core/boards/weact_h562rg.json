@@ -1,0 +1,29 @@
+{
+  "build": {
+    "arduino": {
+      "board": "WEACT_H562RG",
+      "variant_h": "variant_WEACT_H562RG.h"
+    },
+    "core": "stm32",
+    "cpu": "cortex-m33",
+    "extra_flags": "-DSTM32H5 -DSTM32H5xx -DSTM32H562xx",
+    "f_cpu": "250000000L",
+    "framework_extra_flags": {
+      "arduino": "-DCUSTOM_PERIPHERAL_PINS"
+    },
+    "mcu": "stm32h562rgt6",
+    "product_line": "STM32H562xx",
+    "variant": "STM32H5xx/H562R(G-I)T"
+  },
+  "frameworks": ["arduino"],
+  "name": "WeAct Studio STM32H562RGT6 Core Board",
+  "upload": {
+    "maximum_ram_size": 655360,
+    "maximum_size": 1048576,
+    "offset_address": "0x08000000",
+    "protocol": "dfu",
+    "protocols": ["dfu"]
+  },
+  "url": "https://github.com/WeActStudio/WeActStudio.STM32H5_64Pin_CoreBoard",
+  "vendor": "WeAct Studio"
+}

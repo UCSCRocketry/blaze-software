@@ -51,7 +51,7 @@ bool DEBUG_SENSOR_READS = false;   // Print sensor values on each read to serial
 // SPI Flash (W25Q128 - placeholder, adjust pin as needed)
 #define SPI_FLASH_CS_PIN PB8
 
-#define BARO_CS_PIN PB9
+#define BARO_CS_PIN PB_9
  
 
 // ============================================================================
@@ -152,8 +152,8 @@ void setup() {
     digitalWrite(PA1, HIGH);
     pinMode(PA2, OUTPUT);
     digitalWrite(PA2, HIGH);
-    pinMode(PB9, OUTPUT);
-    digitalWrite(PB9, HIGH);
+    pinMode(BARO_CS_PIN, OUTPUT);
+    digitalWrite(BARO_CS_PIN, HIGH);
 
 #endif
 
