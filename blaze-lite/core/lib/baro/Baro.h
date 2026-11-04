@@ -62,7 +62,7 @@ public:
    * @brief Retrieves the device ID of the barometer
    * @return Device ID byte
    */
-  uint8_t getDeviceID();
+  uint32_t getDeviceID();
 
 private:
   MS5611_SPI baro;   ///< Underlying MS5611 driver object

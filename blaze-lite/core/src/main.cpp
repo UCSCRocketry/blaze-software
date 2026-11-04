@@ -240,7 +240,7 @@ void setup() {
     }
     else
     {
-        Serial.println("MS5611 not found. halt.");
+        Serial.println("MS5611 not found.");
     }
     
 
