@@ -34,12 +34,6 @@ int8_t Magnetometer::self_test(){
     return SUCCESS;
 }
 
-// int8_t Magnetometer::get_id(){
-//     if(!_initialized) return ERR_NOT_INITIALIZED;
-
-//     return _sensor.;
-// }
-
 int8_t Magnetometer::set_rate(lis2mdl_rate_t rate){
     if(!_initialized) return ERR_NOT_INITIALIZED;
 
@@ -50,7 +44,7 @@ int8_t Magnetometer::set_rate(lis2mdl_rate_t rate){
 int8_t Magnetometer::reset(){
     if(!_initialized) return ERR_NOT_INITIALIZED;
 
-    // save and set rate becuase _sensor.reset() sets the rate to LIS2MDL_100_HZ
+    // save and set rate because _sensor.reset() sets the rate to LIS2MDL_100_HZ
     lis2mdl_rate_t rate = _sensor.getDataRate();
     _sensor.reset();
     _sensor.setDataRate(rate);

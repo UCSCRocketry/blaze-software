@@ -9,6 +9,10 @@
 
 #include <Adafruit_LIS2MDL.h>
 
+/**
+ * @struct MagnetometerReading
+ * @brief Used to store reading from sensor, componenets of magnetic field strength
+ */
 struct MagnetometerReading{
     float x;
     float y;
@@ -44,14 +48,31 @@ public:
      * @param rate The desired update rate setting for the sensor, defaults to 50 Hz
      */
     int8_t start_up(lis2mdl_rate_t rate = LIS2MDL_RATE_50_HZ);
+
+    /**
+     * @brief Test that the sensor is initialized and successfully gets sensor events
+     */
     int8_t self_test();
+
+    /**
+     * @brief Sets the update rate of the sensor
+     * @param rate The desired new update rate setting for the sensor
+     */
     int8_t set_rate(lis2mdl_rate_t rate);
-    // int8_t get_id();
+
+    /**
+     * @brief Resets the chip to its initial state, keeps previously set update rate
+     */
     int8_t reset();
+
+    /**
+     * @brief Reads data from the sensor and stores in the passed in MagnetometerReading struct
+     * @param reading A reference to a MagnetometerReading struct to store the x, y, and z components of the sensor reading
+     */
     int8_t read(MagnetometerReading& reading);
 
 private:
-    Adafruit_LIS2MDL _sensor;
-    uint8_t _csPin;
-    bool _initialized;
+    Adafruit_LIS2MDL _sensor;   ///< LIS2MDL driver object
+    uint8_t _csPin;             ///< Chip select pin
+    bool _initialized;          ///< Flag for checking if sensor is initialized
 };
