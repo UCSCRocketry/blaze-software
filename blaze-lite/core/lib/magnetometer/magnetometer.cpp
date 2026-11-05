@@ -28,7 +28,7 @@ int8_t Magnetometer::self_test(){
 
     sensors_event_t event{};
     if(!_sensor.getEvent(&event)){
-        return ERR_SENSOR_INIT;
+        return ERR_SENSOR_READ;
     }
 
     return SUCCESS;
