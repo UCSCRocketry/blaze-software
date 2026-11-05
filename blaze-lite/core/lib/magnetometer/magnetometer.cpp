@@ -15,12 +15,12 @@ int8_t Magnetometer::start_up(lis2mdl_rate_t rate){
     _initialized = true;
 
     int8_t result = self_test();
-    if(result != OK){
+    if(result != SUCCESS){
         _initialized = false;
         return result;
     }
 
-    return OK;
+    return SUCCESS;
 }
 
 int8_t Magnetometer::self_test(){
@@ -31,7 +31,7 @@ int8_t Magnetometer::self_test(){
         return ERR_SENSOR_INIT;
     }
 
-    return OK;
+    return SUCCESS;
 }
 
 // int8_t Magnetometer::get_id(){
@@ -44,7 +44,7 @@ int8_t Magnetometer::set_rate(lis2mdl_rate_t rate){
     if(!_initialized) return ERR_NOT_INITIALIZED;
 
     _sensor.setDataRate(rate);
-    return OK;
+    return SUCCESS;
 }
 
 int8_t Magnetometer::reset(){
@@ -55,7 +55,7 @@ int8_t Magnetometer::reset(){
     _sensor.reset();
     _sensor.setDataRate(rate);
 
-    return OK;
+    return SUCCESS;
 }
 
 int8_t Magnetometer::read(MagnetometerReading& reading){
@@ -67,5 +67,5 @@ int8_t Magnetometer::read(MagnetometerReading& reading){
     }
 
     reading = {event.magnetic.x, event.magnetic.y, event.magnetic.z};
-    return OK;
+    return SUCCESS;
 }

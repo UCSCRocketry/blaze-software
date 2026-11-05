@@ -32,7 +32,7 @@ public:
      * @brief Status codes returned by Magnetometer methods
      */
     enum Status : int8_t {
-        OK,
+        SUCCESS,
         ERR_NOT_INITIALIZED,
         ERR_SENSOR_INIT,
         ERR_NOT_IMPLEMENTED,
