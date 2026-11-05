@@ -1,20 +1,14 @@
+/**
+ * @file magnetometer.cpp
+ * @brief Implementation of the Magnetometer wrapper class
+ */
+
 #include "magnetometer.h"
 
 Magnetometer::Magnetometer(uint8_t csPin)
     : _sensor(), _csPin(csPin), _initialized(false) {}
 
-int8_t Magnetometer::self_test(){
-    if(!_initialized) return ERR_NOT_INITIALIZED;
-
-    sensors_event_t event{};
-    if(!_sensor.getEvent(&event)){
-        return ERR_SENSOR_INIT;
-    }
-
-    return OK;
-}
-
-int8_t Magnetometer::start_up(lis2mdl_rate_t rate = LIS2MDL_RATE_50_HZ){
+int8_t Magnetometer::start_up(lis2mdl_rate_t rate){
     if(!_sensor.begin_SPI(_csPin)) return ERR_NOT_INITIALIZED;
 
     _sensor.setDataRate(rate);
@@ -24,6 +18,17 @@ int8_t Magnetometer::start_up(lis2mdl_rate_t rate = LIS2MDL_RATE_50_HZ){
     if(result != OK){
         _initialized = false;
         return result;
+    }
+
+    return OK;
+}
+
+int8_t Magnetometer::self_test(){
+    if(!_initialized) return ERR_NOT_INITIALIZED;
+
+    sensors_event_t event{};
+    if(!_sensor.getEvent(&event)){
+        return ERR_SENSOR_INIT;
     }
 
     return OK;
