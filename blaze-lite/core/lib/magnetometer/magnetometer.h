@@ -1,8 +1,6 @@
 /**
  * @file magnetometer.h
  * @brief Wrapper class for LIS2MDL magnetometer using SPI communication
- * 
- * This class is a simple interface for the LIS2MDL magnetometer, using 
  */
 
 #pragma once
@@ -45,29 +43,34 @@ public:
 
     /**
      * @brief Starts the sensor
-     * @param rate The desired update rate setting for the sensor, defaults to 50 Hz
+     * @param rate [OPTIONAL] The desired update rate setting for the sensor, defaults to 50 Hz
+     * @return Status code indicating success/failure of method
      */
     int8_t start_up(lis2mdl_rate_t rate = LIS2MDL_RATE_50_HZ);
 
     /**
      * @brief Test that the sensor is initialized and successfully gets sensor events
+     * @return Status code indicating success/failure of method
      */
     int8_t self_test();
 
     /**
      * @brief Sets the update rate of the sensor
      * @param rate The desired new update rate setting for the sensor
+     * @return Status code indicating success/failure of method
      */
     int8_t set_rate(lis2mdl_rate_t rate);
 
     /**
      * @brief Resets the chip to its initial state, keeps previously set update rate
+     * @return Status code indicating success/failure of method
      */
     int8_t reset();
 
     /**
      * @brief Reads data from the sensor and stores in the passed in MagnetometerReading struct
      * @param reading A reference to a MagnetometerReading struct to store the x, y, and z components of the sensor reading
+     * @return Status code indicating success/failure of method
      */
     int8_t read(MagnetometerReading& reading);
 
