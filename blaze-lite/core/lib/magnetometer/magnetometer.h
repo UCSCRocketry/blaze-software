@@ -34,11 +34,10 @@ public:
      * @brief Status codes returned by Magnetometer methods
      */
     enum Status : int8_t {
-        SUCCESS,
-        ERR_NOT_INITIALIZED,
-        ERR_SENSOR_INIT,
-        ERR_NOT_IMPLEMENTED,
-        ERR_SENSOR_READ
+        SUCCESS,                ///< Method succeeded
+        ERR_NOT_INITIALIZED,    ///< Sensor is not initialized
+        ERR_SENSOR_READ,        ///< Issue with reading from the sensor
+        ERR_NOT_IMPLEMENTED     ///< Method not implemented 
     };
 
     /**
