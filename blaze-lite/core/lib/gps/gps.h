@@ -1,5 +1,7 @@
 #pragma once
 #include <Wire.h>
+#include <stdint.h>
+#include <stddef.h>
 
 enum UbxAckType{
     UBX_ACK,
@@ -10,9 +12,20 @@ enum UbxAckType{
 enum UbxParserState{
     SYNC1,
     SYNC2,
-    HEADER,
+    CLASS,
+    ID,
+    LENGTH1,
+    LENGTH2,
     DATA,
-    CHECKSUM
+    CHECKSUM_A,
+    CHECKSUM_B
+};
+
+struct ubxMessage{
+    uint8_t msgClass = 0;
+    uint8_t msgId = 0;
+    uint16_t msgSize = 0;
+    uint16_t msgIndex = 0;
 };
 
 struct gpsData{
@@ -41,13 +54,18 @@ class GPS {
         gpsData data = {};
         bool isInitialized = false;
         bool isConnected = false;
+        UbxParserState parserState = SYNC1;
 
         // initialize all hardware-facing consts like ports/pins here. there might also be need for some helpers
 
         const uint32_t TIMEOUT_TOLERANCE_MS = 5000; // this is probably way too high.
         const uint8_t GPS_I2C_ADDRESS = 0x42; // default address for the GPS module. 
         const uint16_t DEFAULT_POLLING_RATE_MS = 100; // 10 times per second. adjust.
-        const uint16_t ACK_MSG_LENGTH = 10; 
+
+        static constexpr size_t MAX_PAYLOAD_SIZE = 92;
+        
+        uint8_t payload[MAX_PAYLOAD_SIZE];
+        ubxMessage currentMessage = {0, 0, 0, 0};
 
         bool setConnectState(bool state); 
 
@@ -63,10 +81,7 @@ class GPS {
             size_t length
         ); 
 
-        void parseUBXPacket(
-            const uint8_t* packet, 
-            size_t length
-        );
+        void parseUBXByte(uint8_t byte); 
 
         UbxAckType waitAcknowledgment(uint32_t timeoutMs); 
 

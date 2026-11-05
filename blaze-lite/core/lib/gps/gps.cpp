@@ -36,29 +36,57 @@ void GPS::readBytes(uint8_t* addr, size_t length) {
 }
 
 
-/** Waits for an acknowledgment from the GPS module after sending a UBX message. */
-UbxAckType GPS::waitAcknowledgment(uint32_t timeoutMs){
-    uint32_t start_t = millis();
-    while (millis() - start_t < timeoutMs) {
-        Wire.requestFrom(GPS_I2C_ADDRESS, ACK_MSG_LENGTH);
-        size_t bytesRead = 0;
-        bool ackFlag = false;
-        while (Wire.available() && bytesRead < ACK_MSG_LENGTH) {
-            uint8_t byte = Wire.read();
-            if (bytesRead == 2 && byte != 0x05){
-                break; // discard the packet
+/** Parses a single UBX byte and updates the parser state accordingly. */
+void GPS::parseUBXByte(uint8_t byte) {
+    switch (parserState) {
+        case SYNC1:
+            if (byte == 0xB5) {
+                parserState = SYNC2;
             }
-            if (bytesRead == 3 && (byte != 0x01 && byte != 0x00)){
-                break;
+            break;
+        case SYNC2:
+            if (byte == 0x62) {
+                parserState = CLASS;
+            } else {
+                parserState = SYNC1; // Reset to SYNC1 if not matching
             }
+            break;
+        case CLASS: // past this point we'll read the whole message.
+            // init
+            currentMessage.msgSize = 0;
+            currentMessage.msgIndex = 0;
+            currentMessage.msgClass = byte;
+            parserState = ID;
+            break;
+        case ID:
+            currentMessage.msgId = byte;
+            parserState = LENGTH1;
+            break;
+        case LENGTH1:
+            currentMessage.msgSize += byte; // little endian
+            parserState = LENGTH2;
+            break;
+        case LENGTH2:
+            currentMessage.msgSize += (byte << 8); // multiply by 256 to get the high byte
+            parserState = DATA;
+            break;
+        case DATA:
+            if(currentMessage.msgIndex < currentMessage.msgSize) {
+                payload[currentMessage.msgIndex] = byte;
+                currentMessage.msgIndex++;
 
-            ackFlag = (bytesRead == 3 && byte == 0x01)
-                ? true
-                : ackFlag;
-                
-            bytesRead++;
-        }
+                if(currentMessage.msgIndex == currentMessage.msgSize) {
+                    parserState = CHECKSUM_A; // move to checksum after reading all data
+                }
+            }
+            break;
+        case CHECKSUM_A:
+            // Handle checksum A byte
+            parserState = CHECKSUM_B;
+            break;
+        case CHECKSUM_B:
+            // Handle checksum B byte and reset to SYNC1 for next message
+            parserState = SYNC1;
+            break;
     }
-
-    return UBX_TIMEOUT; // if timeout occurs, return timeout.
 }
